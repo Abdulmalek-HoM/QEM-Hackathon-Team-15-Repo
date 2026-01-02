@@ -1,0 +1,136 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+
+% Geometry settings
+\geometry{margin=1in}
+
+% Hyperlink setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=red
+}
+
+\title{\textbf{Data-Driven Quantum Error Mitigation: \\ A Comprehensive Research Report for Team 15}}
+\author{Aqora Competition Strategy Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Introduction: The Strategic Landscape of NISQ Error Mitigation}
+
+The current trajectory of quantum computing is defined by the ``Noisy Intermediate-Scale Quantum'' (NISQ) era, a period characterized by processors that have scaled beyond the reach of trivial classical simulation (50 to 100+ qubits) yet remain fundamentally limited by hardware imperfections. In this regime, the primary bottleneck preventing the realization of quantum advantage is not qubit count, but qubit quality. As Team 15 prepares for the Aqora ``Data-Driven Quantum Error Mitigation'' competition, it is critical to recognize that Quantum Error Mitigation (QEM) has transitioned from a theoretical curiosity to an indispensable layer of the quantum software stack. Unlike Quantum Error Correction (QEC), which demands a prohibitive overhead of physical qubits to encode logical information, QEM operates principally via classical post-processing, trading increased sampling costs for improved accuracy.
+
+The objective of this report is to provide an exhaustive analysis of the data-driven QEM landscape, categorizing the tools, algorithms, and methodologies into a coherent deployment pipeline. This analysis is structured to directly address the competition's requirements: data generation, model design, and benchmarking. By synthesizing insights from recent literature—including breakthrough architectures like QEMFormer, Neural Noise Accumulation Surrogates (NNAS), and established frameworks like Mitiq—this document serves as the strategic blueprint for developing a winning submission.
+
+\subsection{The Mathematical Imperative}
+The fundamental problem QEM addresses is the recovery of an ideal expectation value, $\langle O \rangle_{ideal} = \text{Tr}[O\rho]$, from a noisy measurement $\langle O \rangle_{noisy} = \text{Tr}[O\mathcal{N}(\rho)]$, where $\mathcal{N}$ represents the noisy quantum channel. In the context of the Aqora competition, the challenge is to approximate the inverse map $\mathcal{M} \approx \mathcal{N}^{-1}$ using data-driven methods.
+
+Traditional approaches such as Zero-Noise Extrapolation (ZNE) and Probabilistic Error Cancellation (PEC) rely on analytical assumptions. ZNE assumes that noise scales predictably with circuit duration, while PEC assumes that the noise channel can be perfectly characterized. Data-driven QEM (DD-QEM) re-frames this as a supervised learning problem. We seek a function $f_\theta: x_n \rightarrow \hat{x}_i$, parameterized by $\theta$, that maps noisy inputs $x_n$ to ideal outputs $\hat{x}_i$. The competition explicitly challenges participants to surpass classical strategies by learning complex noise patterns via ``model-free'' or ``physics-aware'' learning.
+
+\subsection{The Competition Pipeline: A Three-Phase Approach}
+To structure the research effectively, we categorize the necessary technical developments into three distinct phases of deployment:
+\begin{enumerate}
+    \item \textbf{Phase I: Data Generation Strategy:} Overcoming the supervision bottleneck to generate $\{(x_n^k, x_i^k)\}_k$ pairs for large-scale circuits.
+    \item \textbf{Phase II: Architecture and Model Design:} Developing noise-aware neural architectures (Graph Transformers, Latent Variable Models) that generalize across circuit topologies.
+    \item \textbf{Phase III: Benchmarking and Validation:} Establishing rigorous metrics using frameworks like QEM-Bench to quantify improvement ratios and generalization gaps.
+\end{enumerate}
+
+\section{Phase I: Data Generation and The Supervision Bottleneck}
+
+The most significant hurdle in data-driven QEM is the ``Supervision Bottleneck.'' To train a model to correct errors, one needs access to the ``ground truth'' (ideal) results. However, calculating the exact ideal output for a generic large-scale quantum circuit is exponentially expensive on classical hardware ($O(2^N)$). Team 15 must implement sophisticated strategies to generate high-quality training data without relying on intractable simulations.
+
+\subsection{Strategy A: Clifford Data Regression (CDR)}
+A cornerstone technique relies on the Gottesman-Knill theorem, which states that quantum circuits composed exclusively of Clifford gates (Hadamard, Phase S, CNOT) can be simulated in polynomial time on classical computers.
+
+\subsubsection{Mechanism and Implementation}
+Clifford Data Regression (CDR) constructs a training dataset of ``Near-Clifford'' circuits.
+\begin{itemize}
+    \item \textbf{Near-Clifford Synthesis:} The training set is generated by taking the target circuit (which contains non-Clifford gates like $T$ or arbitrary rotations $R_z(\theta)$) and replacing the non-Clifford gates with their nearest Clifford approximations.
+    \item \textbf{Regression Training:} A regression model is trained on this dataset using the efficiently calculable labels.
+    \item \textbf{Inference:} The trained model is then applied to the noisy results of the original non-Clifford circuit.
+\end{itemize}
+
+\subsubsection{Advanced CDR: Variable-Noise Training}
+To enhance robustness, Team 15 should explore \textbf{Variable-Noise CDR (vnCDR)}. This involves generating training data at artificially increased noise levels (e.g., $\lambda = 1.5, 2.0$), allowing the model to learn the derivative of the error with respect to noise strength.
+
+\subsection{Strategy B: Random Circuit Sampling (RCS) \& Circuit Knitting}
+\begin{itemize}
+    \item \textbf{Random Circuit Sampling:} Learning to denoise Porter-Thomas distributions forces the model to capture general device noise characteristics (gate fidelities, crosstalk) rather than overfitting to specific algorithms.
+    \item \textbf{Circuit Knitting:} For circuits exceeding simulation limits ($>50$ qubits), large circuits are ``cut'' into smaller, classically simulable sub-circuits. The recombined results provide ``pseudo-labels'' for training large-scale models.
+\end{itemize}
+
+\subsection{Noise Injection and Augmentation}
+\begin{itemize}
+    \item \textbf{Unitary Folding:} Using Mitiq's \texttt{fold\_global} to simulate higher noise levels on real hardware ($G \rightarrow G G^\dagger G$).
+    \item \textbf{Pauli Twirling:} Converting coherent errors into stochastic Pauli errors by sandwiching gates with random Pauli operators. This ``cleans'' the learning landscape for the neural network.
+\end{itemize}
+
+\section{Phase II: Model Design and Architecture}
+
+The core of the competition submission lies in the definition of the mapping function $f_\theta$.
+
+\subsection{Feature Engineering}
+\begin{itemize}
+    \item \textbf{Statistical Features:} Expectation values augmented with circuit depth, $N_{CNOT}$, and shot noise variance.
+    \item \textbf{Graph Representations:} Encoding the circuit as a Directed Acyclic Graph (DAG) where nodes are gates and edges are qubits. This is essential for generalizing across different circuit topologies (e.g., training on Random, testing on QAOA).
+\end{itemize}
+
+\subsection{Advanced Architectures: QEMFormer}
+Recent benchmarks highlight **Graph Transformers** (e.g., QEMFormer) as the superior architecture. unlike standard GNNs which struggle with non-local entanglement due to limited message passing, Transformers use global attention mechanisms to relate the first gate in a circuit to the last, capturing long-range correlations and crosstalk.
+
+\begin{table}[h]
+\centering
+\caption{Comparative Analysis of QEM Model Architectures}
+\begin{tabular}{@{}lp{3cm}p{3cm}p{3cm}@{}}
+\toprule
+\textbf{Architecture} & \textbf{Strengths} & \textbf{Weaknesses} & \textbf{Best Use Case} \\ \midrule
+Linear / CDR & Interpretable, sample-efficient & Limited non-linearity & Calibration baselines \\
+MLP / DNN & Learns non-linear mappings & Poor generalization to new topologies & Fixed ansatz (VQE) \\
+Graph Transformer & Captures non-local entanglement & Computationally expensive & General-purpose competition pipeline \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Physics-Informed Models: NNAS}
+The \textbf{Neural Noise Accumulation Surrogate (NNAS)} processes the circuit layer-by-layer, updating a hidden state that represents the ``accumulated noise'' density matrix. This enforces the physical constraint that noise grows monotonically with depth.
+
+\section{Phase III: Benchmarking, Validation, and Tooling}
+
+\subsection{Metrics and QEM-Bench}
+Team 15 should adopt the \textbf{QEM-Bench} suite for evaluation. Key metrics include:
+\begin{itemize}
+    \item \textbf{Improvement Ratio (IR):} $IR = \frac{| \langle O \rangle_{noisy} - \langle O \rangle_{ideal} |}{| \langle O \rangle_{mitigated} - \langle O \rangle_{ideal} |}$
+    \item \textbf{Generalization Gap:} The performance difference between training on Random Circuits and testing on QAOA.
+\end{itemize}
+
+\subsection{Implementation Tooling}
+\begin{itemize}
+    \item \textbf{Mitiq:} For baseline ZNE and CDR implementation (`execute\_with\_zne`, `fold\_global`).
+    \item \textbf{PennyLane:} For differentiable quantum programming and hybrid optimization.
+    \item \textbf{Qiskit Runtime:} To compare against built-in resilience levels (TREX, ZNE).
+\end{itemize}
+
+\section{Winning Roadmap for Team 15}
+
+\begin{enumerate}
+    \item \textbf{Phase I:} Generate a ``Foundation Dataset'' of 100k+ Clifford circuits and 10k+ small Random circuits. Augment heavily with Pauli Twirling.
+    \item \textbf{Phase II:} Develop a \textbf{QEMFormer-style Graph Transformer}. Integrate \textbf{Noise-Awareness} by feeding calibration data ($T_1, T_2$) into the embedding layer.
+    \item \textbf{Phase III:} Implement \textbf{Consistency-Based Extrapolation} (ensemble selection) to reduce model variance.
+    \item \textbf{Phase IV:} Rigorous benchmarking on \textbf{QEM-Bench}, focusing on Out-of-Distribution (OOD) testing.
+\end{enumerate}
+
+\end{document}

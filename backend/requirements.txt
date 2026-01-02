@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+torch
+numpy
+scipy
+scikit-learn
+qiskit
+qiskit-aer
