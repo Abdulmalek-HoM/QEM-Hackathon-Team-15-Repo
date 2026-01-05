@@ -1,78 +1,94 @@
 # Team 15: Data-Driven Quantum Error Mitigation (QEM)
 
 ## Overview
-This repository contains the research and codebase for Team 15's submission to the **Aqora "Data-Driven Quantum Error Mitigation" Competition**. Our goal is to develop a robust, data-driven pipeline to mitigate noise in Intermediate-Scale Quantum (NISQ) devices.
+This repository contains Team 15's submission to the **Aqora "Data-Driven Quantum Error Mitigation" Competition**. We develop a robust, data-driven pipeline to mitigate noise in NISQ devices using advanced **Graph Transformers (QEMFormer)** combined with physics-based methods.
 
-We move beyond traditional error mitigation techniques (like Zero-Noise Extrapolation or ZNE) by implementing advanced **Deep Learning models**, specifically **Graph Transformers (QEMFormer)** and **LSTM-based architectures**, to learn and correct complex noise patterns.
+## Key Features
+- **Multi-Observable Support**: Predicts `⟨Z₀⟩`, `⟨Z₀Z₁⟩` correlations, and global parity
+- **Graph Transformer Architecture**: Captures circuit topology as DAG for superior generalization
+- **Clifford Data Regression (CDR)**: Overcomes supervision bottleneck with near-Clifford training
+- **Pauli Twirling**: Converts coherent errors to stochastic for cleaner learning
+- **OOD Testing**: Benchmarks on Clifford, QAOA, and Variational circuits
 
-## Project Structure
+## Quick Start
 
-The project is structured into educational and practical modules, guiding the user from basic quantum operations to advanced AI-based error mitigation.
-
-### Educational & Dev Modules
-*   **`Module_1_Qubit_Operations.ipynb`**: Introduction to basic qubit manipulations.
-*   **`Module_2_Circuits_Connectivity.ipynb`**: Understanding circuit topology and connectivity constraints.
-*   **`Module_3_Large_Scale.ipynb`**: Strategies for handling larger quantum circuits.
-*   **`Module_4_Modeling_Errors.ipynb`**: simulating and analyzing quantum noise channels.
-*   **`Module_5_ZNE.ipynb`**: Implementation of Zero-Noise Extrapolation (ZNE) using Mitiq.
-*   **`Module_6_AI_Models.ipynb`**: Developing and training AI models (LSTMs, Transformers) for QEM.
-*   **`Module_7_Deployment.ipynb`**: Deployment pipeline for the trained QEM models.
-
-### Core Source Code
-*   **`data_gen_advanced.py`**: A robust data generation pipeline utilizing **Clifford Data Regression (CDR)** and **Pauli Twirling**. Generates dataset graphs for training.
-*   **`models/qem_former.py`**: Implementation of the **QEM-Former**, a Graph Transformer model with learned embeddings for gates and noise data.
-*   **`train_qem.py`**: Script to train the QEM models using the generated datasets.
-*   **`benchmark_suite.py`**: A benchmarking suite to evaluate the model's performance (Improvement Ratio) against baselines like ZNE.
-*   **`dashboard.py`**: A Streamlit dashboard for visualizing results and interacting with the models.
-
-## Installation
-
-1.  **Clone the repository** (if applicable).
-2.  **Create a virtual environment** (recommended):
-    ```bash
-    python -m venv .venv
-    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-    ```
-3.  **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-## Usage
-
-### 1. Data Generation
-To generate a training dataset using Clifford Data Regression and Pauli Twirling:
 ```bash
-python data_gen_advanced.py
-```
-This will create dataset files in the `dataset/` directory.
+# Install dependencies (Python 3.10+ recommended)
+pip install -r requirements.txt
 
-### 2. Training
-To train the QEM-Former model:
-```bash
+# Generate training data (500 samples)
+python data_gen_advanced.py --samples 500
+
+# Generate large dataset (5000 samples)
+python data_gen_advanced.py --large
+
+# Train the model
 python train_qem.py
-```
-Trained models will be saved in the `models/` directory or as `.pth` files in the root.
 
-### 3. Benchmarking
-To evaluate the model's performance:
-```bash
+# Run benchmarks (includes OOD testing)
 python benchmark_suite.py
-```
 
-### 4. Interactive Dashboard
-To explore the models and results interactively:
-```bash
+# Launch interactive dashboard
 streamlit run dashboard.py
 ```
 
+## Project Structure
+
+### Core Pipeline
+| File | Description |
+|------|-------------|
+| `data_gen_advanced.py` | CDR + Pauli Twirling data generation with multi-observable support |
+| `models/qem_former.py` | Graph Transformer with noise context injection |
+| `train_qem.py` | Training with visualization and metrics logging |
+| `benchmark_suite.py` | OOD testing across circuit types + JSON export |
+| `dashboard.py` | Streamlit visualization interface |
+
+### Educational Modules
+Jupyter notebooks (Module 1-7) provide a progressive walkthrough from qubit basics to deployment.
+
 ## Methodology
 
-Our approach follows a three-phase strategy:
+### Phase 1: Data Generation
+- **Clifford Data Regression (CDR)**: Efficiently simulable circuits provide ground truth
+- **Pauli Twirling**: Random Pauli insertions around CNOTs convert coherent → stochastic errors
+- **Variable Noise**: Training at multiple noise scales (configurable `--noise-scale`)
 
-1.  **Data Generation**: Overcoming the supervision bottleneck using **Clifford Data Regression (CDR)** to generate training pairs ($x_{noisy}$, $y_{ideal}$) from efficiently simulable near-Clifford circuits. We augment this with **Variable-Noise Training** and **Pauli Twirling**.
-2.  **Model Architecture**: We utilize **Graph Transformers (QEMFormer)** to capture the non-local entanglement and structure of quantum circuits. The model treats the circuit as a Directed Acyclic Graph (DAG), learning to map noisy states to improved expectation values.
-3.  **Validation**: Rigorous benchmarking using the **Improvement Ratio (IR)** metric to quantify gain over raw hardware execution and standard ZNE.
+### Phase 2: Model Architecture
+```
+Circuit DAG → Node Embedding → TransformerConv (×2) → Global Pool → Context Fusion → MLP → ⟨O⟩_ideal
+                                                              ↑
+                                                    [z0_noisy, zz_noisy, n_qubits, depth, noise_scale]
+```
+
+### Phase 3: Benchmarking
+- **In-Distribution**: Random Clifford circuits
+- **Out-of-Distribution**: QAOA and Variational Ansatz circuits
+- **Metrics**: Improvement Ratio (IR) = Error_noisy / Error_mitigated
+
+## Limitations & Failure Cases
+
+| Scenario | Expected Behavior | Mitigation |
+|----------|------------------|------------|
+| Deep circuits (>50 gates) | Reduced IR due to noise accumulation | Increase training depth range |
+| Non-Clifford heavy circuits | Lower accuracy (CDR limitation) | Variable-noise augmentation |
+| Strong crosstalk | May underperform if not in training | Include multi-qubit correlations |
+| Low shot counts (<100) | Statistical noise dominates | Ensemble predictions |
+
+## Output Files
+
+After running the pipeline:
+- `qem_former.pth` — Trained model weights
+- `training_metrics.json` — Loss curves and training stats
+- `training_curves.png` — Visualization of training progress
+- `benchmark_results.json` — Detailed benchmark metrics
+
+## Requirements
+- Python 3.10+
+- Qiskit 1.0+, Qiskit-Aer 0.14+
+- PyTorch 2.1+, PyTorch Geometric 2.4+
+- Mitiq 0.35+
+
+See `requirements.txt` for complete dependencies.
 
 ## Authors
 **Aqora Competition Strategy Team (Team 15)**

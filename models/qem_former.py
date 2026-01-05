@@ -22,7 +22,7 @@ class QEMFormer(nn.Module):
                  num_gnn_layers=2, 
                  transformer_heads=4, 
                  transformer_layers=2, 
-                 noise_context_dim=3):
+                 noise_context_dim=5):  # Updated: [z0_noisy, zz_noisy, n_qubits, depth, noise_scale]
         super(QEMFormer, self).__init__()
         
         # 1. Embeddings

@@ -219,106 +219,197 @@ def apply_pauli_twirling(qc: QuantumCircuit) -> QuantumCircuit:
             
     return twirled_qc
 
+# --- Observable Calculation Helpers ---
+
+def calculate_z0_expectation(counts):
+    """Calculate <Z_0> from measurement counts."""
+    z0 = 0
+    total = 0
+    for bitstring, count in counts.items():
+        # Qiskit bitstring is little-endian (qN...q0). So q0 is the LAST char.
+        q0_val = int(bitstring[-1])
+        sign = 1 if q0_val == 0 else -1
+        z0 += sign * count
+        total += count
+    return z0 / total if total > 0 else 0
+
+def calculate_zz_correlation(counts, qubit_a=0, qubit_b=1):
+    """Calculate <Z_a Z_b> correlation from measurement counts."""
+    zz = 0
+    total = 0
+    for bitstring, count in counts.items():
+        # Qiskit bitstring is little-endian (qN...q0)
+        # bitstring[-1] is q0, bitstring[-2] is q1, etc.
+        try:
+            za = int(bitstring[-(qubit_a + 1)])
+            zb = int(bitstring[-(qubit_b + 1)])
+            # Z eigenvalues: |0> -> +1, |1> -> -1
+            sign_a = 1 if za == 0 else -1
+            sign_b = 1 if zb == 0 else -1
+            zz += sign_a * sign_b * count
+            total += count
+        except IndexError:
+            continue
+    return zz / total if total > 0 else 0
+
+def calculate_global_parity(counts):
+    """Calculate global parity <Z_0 Z_1 ... Z_n> from measurement counts."""
+    parity = 0
+    total = 0
+    for bitstring, count in counts.items():
+        # Count number of 1s - if even parity = +1, if odd parity = -1
+        num_ones = bitstring.count('1')
+        sign = 1 if num_ones % 2 == 0 else -1
+        parity += sign * count
+        total += count
+    return parity / total if total > 0 else 0
+
 # --- Main Data Generation ---
 
-def generate_advanced_dataset(n_samples=1000, min_qubits=5, max_qubits=20, chunk_id=0):
+def generate_advanced_dataset(n_samples=1000, min_qubits=5, max_qubits=20, chunk_id=0, 
+                               include_zz=True, include_parity=False, noise_scale=1.5):
     """
     Generates dataset using Clifford circuits + CDR + Pauli Twirling.
-    Saves as .pt file.
+    
+    Args:
+        n_samples: Number of samples to generate
+        min_qubits: Minimum qubit count per circuit
+        max_qubits: Maximum qubit count per circuit
+        chunk_id: Identifier for this data chunk
+        include_zz: Include ZZ correlation observable
+        include_parity: Include global parity observable
+        noise_scale: Noise intensity (higher = more noise)
+    
+    Saves as .pt file with multi-observable targets.
     """
+    try:
+        from tqdm import tqdm
+        use_tqdm = True
+    except ImportError:
+        use_tqdm = False
+        
     builder = QEMGraphBuilder()
     data_list = []
     
     # Simulators
-    sim_ideal = AerSimulator(method='stabilizer') # Fast for Clifford
-    noise_model = utils.build_noise_model(scale=1.5) # Stronger noise for training
+    sim_ideal = AerSimulator(method='stabilizer')  # Fast for Clifford
+    noise_model = utils.build_noise_model(scale=noise_scale)
     sim_noisy = AerSimulator(noise_model=noise_model)
     
     print(f"Generating Chunk {chunk_id}: {n_samples} samples...")
+    print(f"  Qubits: {min_qubits}-{max_qubits}, Noise Scale: {noise_scale}")
+    print(f"  Observables: Z0=True, ZZ={include_zz}, Parity={include_parity}")
     
-    for i in range(n_samples):
+    iterator = tqdm(range(n_samples), desc=f"Chunk {chunk_id}") if use_tqdm else range(n_samples)
+    
+    for i in iterator:
         n_q = np.random.randint(min_qubits, max_qubits + 1)
-        depth = np.random.randint(n_q, n_q*3) # Depth scales with qubits
+        depth = np.random.randint(n_q, n_q * 3)  # Depth scales with qubits
         
         # 1. Generate Random Clifford Circuit
         qc, _ = utils.create_random_clifford_circuit(n_q, depth)
         qc.measure_all()
         
-        # 2. Get GROUND TRUTH (Ideal Expectation of Z on qubit 0 or global parity?)
-        # Let's target Global Parity <ZZ...Z> for simplicity or just <Z_0>.
-        # Let's do <Z_0> to keep it simple for now, or average magnetization.
-        # Ideally QEM is for specific observables. Let's pick Observable O = Z on qubit 0.
-        
+        # 2. Ideal Execution
         qc_sim = qc.copy()
-        # Ideal run
-        result_ideal = sim_ideal.run(qc_sim, shots=None).result() # Exact probabilities from stabilizer if supported, or shots
-        # Aer stabilizer gives counts.
-        counts_ideal = sim_ideal.run(qc_sim, shots=1000).result().get_counts()
+        counts_ideal = sim_ideal.run(qc_sim, shots=2000).result().get_counts()
         
-        # Calculate Expectation <Z_0>
-        # P(0) - P(1) for qubit 0.
-        z0_ideal = 0
-        total_shots = 0
-        for bitstring, count in counts_ideal.items():
-            # Qiskit bitstring is little-endian (qN...q0). So q0 is the LAST char.
-            q0_val = int(bitstring[-1]) # 0 or 1
-            sign = 1 if q0_val == 0 else -1
-            z0_ideal += sign * count
-            total_shots += count
-        z0_ideal /= total_shots
+        # Calculate observables - Ideal
+        z0_ideal = calculate_z0_expectation(counts_ideal)
+        zz_ideal = calculate_zz_correlation(counts_ideal, 0, 1) if include_zz and n_q >= 2 else 0.0
+        parity_ideal = calculate_global_parity(counts_ideal) if include_parity else 0.0
         
         # 3. Noisy Execution with Pauli Twirling
-        # We run the circuit MULTIPLE times with different twirls to average stochastic noise?
-        # CDR usually runs the exact circuit (or twirled variants). 
-        # Feature for AI: "Noisy Expectation"
-        
-        # Apply Pauli Twirling ONCE per sample? Or average over duplicates?
-        # For training efficiently, let's apply one random twirl per sample 
-        # and let the batching handle the averaging effectively, 
-        # OR run say 10 twirled shots.
-        
-        # Let's do: Create Twirled Circuit -> Run on Noisy Backend
         qc_twirled = apply_pauli_twirling(qc)
         qc_noisy_transpiled = transpile(qc_twirled, sim_noisy)
         
-        result_noisy = sim_noisy.run(qc_noisy_transpiled, shots=1000).result()
-        counts_noisy = result_noisy.get_counts()
+        counts_noisy = sim_noisy.run(qc_noisy_transpiled, shots=2000).result().get_counts()
         
-        # Calculate <Z_0> Noisy
-        z0_noisy = 0
-        total_shots_n = 0
-        for bitstring, count in counts_noisy.items():
-            q0_val = int(bitstring[-1])
-            sign = 1 if q0_val == 0 else -1
-            z0_noisy += sign * count
-            total_shots_n += count
-        z0_noisy /= total_shots_n
+        # Calculate observables - Noisy
+        z0_noisy = calculate_z0_expectation(counts_noisy)
+        zz_noisy = calculate_zz_correlation(counts_noisy, 0, 1) if include_zz and n_q >= 2 else 0.0
+        parity_noisy = calculate_global_parity(counts_noisy) if include_parity else 0.0
         
-        # 4. Graph Conversion
-        # Features: Noisy Value usually is an INPUT feature to the model? 
-        # Or does the model predict Ideal from Noisy?
-        # QEM-Former Input: Circuit Graph.
-        # We need to inject "Noisy value" somewhere.
-        # Option A: Global Attribute of the graph = [Noisy_Expectation, T1, T2...]
-        # Option B: The model just learns to predict scale factors?
-        # CDR approach: Train model to predict Ideal from (Noisy, Circuit).
-        
-        # Let's add Noisy Expectation to "Global Features"
-        # Features: [Noisy_Exp, Qubit_Count, Depth]
-        global_feats = [z0_noisy, float(n_q), float(depth)]
+        # 4. Graph Conversion with extended features
+        # Global Features: [z0_noisy, zz_noisy, qubit_count, depth, noise_scale]
+        global_feats = [z0_noisy, zz_noisy, float(n_q), float(depth), noise_scale]
         
         graph_data = builder.circuit_to_graph(qc, global_features=global_feats)
-        graph_data.y = torch.tensor([z0_ideal], dtype=torch.float) # Target
+        
+        # Multi-observable target: [z0_ideal, zz_ideal, parity_ideal]
+        graph_data.y = torch.tensor([z0_ideal], dtype=torch.float)  # Primary target
+        graph_data.y_z0 = torch.tensor([z0_ideal], dtype=torch.float)
+        graph_data.y_zz = torch.tensor([zz_ideal], dtype=torch.float)
+        graph_data.y_parity = torch.tensor([parity_ideal], dtype=torch.float)
+        
+        # Store metadata for analysis
+        graph_data.n_qubits = n_q
+        graph_data.depth = depth
         
         data_list.append(graph_data)
         
-        if i % 100 == 0:
-            print(f"  Sample {i}: Ideal={z0_ideal:.3f}, Noisy={z0_noisy:.3f}")
+        if not use_tqdm and i % 200 == 0:
+            print(f"  Sample {i}: Z0_ideal={z0_ideal:.3f}, ZZ_ideal={zz_ideal:.3f}")
             
     # Save
     save_path = os.path.join(DATASET_DIR, f"train_data_chunk_{chunk_id}.pt")
     torch.save(data_list, save_path)
     print(f"Saved {len(data_list)} graphs to {save_path}")
+    
+    return data_list
+
+def generate_large_dataset(total_samples=5000, chunk_size=500, **kwargs):
+    """
+    Generate a large dataset in chunks for memory efficiency.
+    
+    Args:
+        total_samples: Total number of samples to generate
+        chunk_size: Samples per chunk file
+        **kwargs: Other args passed to generate_advanced_dataset
+    """
+    n_chunks = (total_samples + chunk_size - 1) // chunk_size
+    print(f"Generating {total_samples} samples in {n_chunks} chunks...")
+    
+    all_data = []
+    for chunk_id in range(n_chunks):
+        samples_this_chunk = min(chunk_size, total_samples - chunk_id * chunk_size)
+        chunk_data = generate_advanced_dataset(
+            n_samples=samples_this_chunk,
+            chunk_id=chunk_id,
+            **kwargs
+        )
+        all_data.extend(chunk_data)
+        
+    print(f"\n=== Dataset Generation Complete ===")
+    print(f"Total samples: {len(all_data)}")
+    return all_data
 
 if __name__ == "__main__":
-    generate_advanced_dataset(n_samples=500, min_qubits=4, max_qubits=10, chunk_id=0)
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Generate QEM training dataset")
+    parser.add_argument("--samples", type=int, default=500, help="Number of samples")
+    parser.add_argument("--min-qubits", type=int, default=4, help="Min qubits")
+    parser.add_argument("--max-qubits", type=int, default=10, help="Max qubits")
+    parser.add_argument("--chunk-id", type=int, default=0, help="Chunk ID")
+    parser.add_argument("--large", action="store_true", help="Generate large dataset (5000 samples)")
+    parser.add_argument("--noise-scale", type=float, default=1.5, help="Noise scale factor")
+    
+    args = parser.parse_args()
+    
+    if args.large:
+        generate_large_dataset(
+            total_samples=5000,
+            chunk_size=500,
+            min_qubits=args.min_qubits,
+            max_qubits=args.max_qubits,
+            noise_scale=args.noise_scale
+        )
+    else:
+        generate_advanced_dataset(
+            n_samples=args.samples,
+            min_qubits=args.min_qubits,
+            max_qubits=args.max_qubits,
+            chunk_id=args.chunk_id,
+            noise_scale=args.noise_scale
+        )
