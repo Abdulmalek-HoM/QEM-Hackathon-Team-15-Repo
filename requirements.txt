@@ -9,3 +9,4 @@ torch>=2.0.0
 mitiq>=0.30.0
 torch_geometric>=2.4.0
 streamlit>=1.30.0
+pylatexenc>=2.10

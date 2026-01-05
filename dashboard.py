@@ -46,7 +46,7 @@ st.markdown("""
 # Initialize Pipeline
 @st.cache_resource
 def load_pipeline():
-    return HackathonPipeline(lstm_path="qem_lstm.pth")
+    return HackathonPipeline(model_path="qem_former.pth")
 
 pipeline = load_pipeline()
 
@@ -61,7 +61,7 @@ circuit_type = st.sidebar.selectbox(
 
 # Parameters based on selection
 depth = 10
-qubits = 2 # Fixed for this demo as per models
+qubits = st.sidebar.slider("Number of Qubits", 2, 10, 5) # Scalable now!
 if circuit_type == "Random Clifford":
     depth = st.sidebar.slider("Circuit Depth", 5, 50, 15)
 elif circuit_type == "QAOA (MaxCut)":
@@ -92,6 +92,9 @@ if run_btn:
             # Placeholder for Custom QASM
             qc, instructions = utils.create_random_clifford_circuit(qubits, 10)
             st.warning("using random circuit for now")
+            
+        # Ensure measurements are present for simulations
+        qc.measure_all()
 
         # 2. Run Pipeline
         final_pred, ai_res, zne_base = pipeline.predict(qc, instructions)

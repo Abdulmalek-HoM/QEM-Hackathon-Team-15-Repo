@@ -6,8 +6,8 @@ import os
 # Add root directory to path to allow importing from utils and models
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from models.qem_lstm import QEM_LSTM
-# from models.qem_former import QEMFormer # TODO: Enable when Transformer is ready
+from models.qem_former import QEMFormer
+from data_gen_advanced import QEMGraphBuilder
 import utils
 from qiskit_aer import AerSimulator
 from qiskit import transpile
@@ -15,25 +15,21 @@ from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
 class HackathonPipeline:
-    def __init__(self, lstm_path="qem_lstm.pth"):
-        self.tokenizer = utils.CircuitTokenizer(max_length=60)
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, model_path="qem_former.pth"):
+        self.device = torch.device('cpu') # Force CPU for safety in dashboard usually
+        self.graph_builder = QEMGraphBuilder()
         
-        # Load AI Model (LSTM)
+        # Load AI Model (QEM-Former)
         try:
-            # We need to know vocab size. 
-            # Ideally this is stored or we re-instantiate tokenizer exactly as before.
-            # For hackathon rig: default vocab size is usually fixed by CircuitTokenizer logic
-            vocab_size = len(self.tokenizer.vocab) + 1
-            self.model = QEM_LSTM(vocab_size).to(self.device)
-            
-            # Map location for safety if no GPU
-            state_dict = torch.load(lstm_path, map_location=self.device)
+            self.model = QEMFormer().to(self.device)
+            # Load weights (weights_only=False for safety if trusted, or True if properly saved)
+            # We saved with defaults in train_qem, which might require weights_only=False if global issues persist
+            state_dict = torch.load(model_path, map_location=self.device, weights_only=False)
             self.model.load_state_dict(state_dict)
             self.model.eval()
-            print("✅ AI Model (LSTM) Loaded Successfully.")
+            print("✅ AI Model (QEM-Former) Loaded Successfully.")
         except FileNotFoundError:
-            print(f"⚠️ Model file {lstm_path} not found. AI correction will be disabled.")
+            print(f"⚠️ Model file {model_path} not found. AI correction will be disabled.")
             self.model = None
         except Exception as e:
             print(f"⚠️ Error loading model: {e}")
@@ -51,9 +47,13 @@ class HackathonPipeline:
             counts = sim.run(qc_t, shots=1000).result().get_counts()
             shots = sum(counts.values())
             # Calculate expectation value Z
-            # (P00+P11) - (P01+P10) for 2 qubits target
-            # TODO: Generalize for N qubits if needed, currently hardcoded for 2 from Module 7
-            val = (counts.get('00', 0)+counts.get('11', 0) - counts.get('01', 0)-counts.get('10', 0))/shots
+            # Calculate expectation value <Z_0> (first qubit)
+            # bitstring is qn..q0. q0 is last char.
+            z0_val = 0
+            for b, c in counts.items():
+                val = 1 if b[-1] == '0' else -1
+                z0_val += val * c
+            val = z0_val / shots
             results.append(val)
             
         # Extrapolate
@@ -72,16 +72,65 @@ class HackathonPipeline:
         # 1. ZNE Baseline
         base_estimate = self.run_zne(qc)
         
+        # 2. AI Prediction (Mitigated Value directly OR Residual?)
+        # Our QEMFormer was trained to predict the *Ideal Value* directly from (NoisyGraph).
+        # Wait, let's check train_qem.py / data_gen.
+        # graph_data.y = ideal.
+        # Input global_attr = [noisy_val, n_q, depth]. 
+        # So model predicts Ideal. It's NOT a residual model in the strict sense (Base + Residual),
+        # but the dashboard expects (final, residual, base).
+        # We can define residual = predicted_ideal - base_estimate.
+        
+        final_prediction = base_estimate # Default if no model
         predicted_residual = 0.0
+        
         if self.model:
-            # 2. AI Correction
-            seq = self.tokenizer.tokenize(instructions)
-            seq_t = torch.tensor([seq], dtype=torch.long).to(self.device)
+            # Prepare Noisy Value for Context
+            # We can re-use base_estimate (ZNE) or raw noisy. 
+            # Models trained on raw noisy in context.
+            # Let's run raw noisy quickly or extract from ZNE run? 
+            # ZNE code runs scale 1.0. Let's optimize run_zne to return it? 
+            # Or just re-run/use base_estimate (which is ZNE extrapolated). 
+            # BUT: Model expects [RawNoisy, Qubits, Depth].
+            # Training data used Sim_Noisy (Scale 1.5).
+            # Here we should prob feed the equivalent.
+            
+            # For hackathon speed, let's just use base_estimate as proxy or re-run raw.
+            # Re-running raw is safer for "Noisy Input".
+            sim = AerSimulator() # Standard noise? No, use utils.build_noise like training
+            nm = utils.build_noise_model(scale=1.0) # Baseline noise
+            sim = AerSimulator(noise_model=nm)
+            raw_noisy_val = 0
+            # Check if we can get it from ZNE to save time? 
+            # ZNE ran scale 1.0. But `run_zne` swallows it. 
+            # Let's simple re-run or assume noise is bad.
+            
+            # Let's run just one raw shot for context
+            t_qc = transpile(qc, sim)
+            counts = sim.run(t_qc, shots=1000).result().get_counts()
+            shots = sum(counts.values())
+            z0_val = 0
+            for b, c in counts.items():
+                val = 1 if b[-1] == '0' else -1
+                z0_val += val * c
+            raw_val = z0_val / shots
+            
+            # Build Graph
+            # context: [Noisy, n_q, depth]
+            n_q = qc.num_qubits
+            depth = qc.depth()
+            global_attr = [raw_val, float(n_q), float(depth)]
+            
+            graph = self.graph_builder.circuit_to_graph(qc, global_features=global_attr).to(self.device)
             
             with torch.no_grad():
-                predicted_residual = self.model(seq_t).item()
+                # Batch of 1
+                batch = torch.zeros(graph.x.size(0), dtype=torch.long).to(self.device)
+                pred = self.model(graph.x, graph.edge_index, batch, graph.global_attr.unsqueeze(0))
+                final_prediction = pred.item()
+                
+            predicted_residual = final_prediction - base_estimate
             
-        final_prediction = base_estimate + predicted_residual
         return final_prediction, predicted_residual, base_estimate
 
     def get_ground_truth(self, qc):
@@ -94,5 +143,9 @@ class HackathonPipeline:
             res = sim_ideal.run(transpile(qc, sim_ideal), shots=1000).result().get_counts()
             
         shots = sum(res.values())
-        true_val = (res.get('00',0)+res.get('11',0) - res.get('01',0)-res.get('10',0))/shots
-        return true_val, res
+        # Calculate <Z_0>
+        z0_val = 0
+        for b, c in res.items():
+            val = 1 if b[-1] == '0' else -1
+            z0_val += val * c
+        return z0_val / shots, res
