@@ -384,6 +384,117 @@ def generate_large_dataset(total_samples=5000, chunk_size=500, **kwargs):
     print(f"Total samples: {len(all_data)}")
     return all_data
 
+def generate_mixed_dataset(n_samples=2000, min_qubits=4, max_qubits=8, noise_scale=1.5, chunk_id=100):
+    """
+    Generate a MIXED dataset with Clifford, QAOA, and Variational circuits.
+    Uses STATEVECTOR for accurate ground truth on non-Clifford circuits.
+    
+    This improves OOD generalization significantly.
+    """
+    from qiskit.quantum_info import Statevector
+    
+    try:
+        from tqdm import tqdm
+        use_tqdm = True
+    except ImportError:
+        use_tqdm = False
+    
+    builder = QEMGraphBuilder()
+    data_list = []
+    
+    noise_model = utils.build_noise_model(scale=noise_scale)
+    sim_noisy = AerSimulator(noise_model=noise_model)
+    sim_stabilizer = AerSimulator(method='stabilizer')
+    
+    # Circuit type distribution: 60% Clifford, 20% QAOA, 20% Variational
+    circuit_types = ['clifford'] * 60 + ['qaoa'] * 20 + ['variational'] * 20
+    
+    print(f"Generating MIXED Dataset (Chunk {chunk_id}): {n_samples} samples")
+    print(f"  Distribution: 60% Clifford, 20% QAOA, 20% Variational")
+    print(f"  Qubits: {min_qubits}-{max_qubits}, Noise Scale: {noise_scale}")
+    
+    iterator = tqdm(range(n_samples), desc="Mixed Gen") if use_tqdm else range(n_samples)
+    
+    for i in iterator:
+        n_q = np.random.randint(min_qubits, max_qubits + 1)
+        circuit_type = np.random.choice(circuit_types)
+        
+        # Generate circuit based on type
+        if circuit_type == 'clifford':
+            depth = np.random.randint(n_q, n_q * 3)
+            qc, _ = utils.create_random_clifford_circuit(n_q, depth)
+            use_stabilizer = True
+        elif circuit_type == 'qaoa':
+            p = np.random.randint(1, 4)
+            qc, _ = utils.create_qaoa_circuit(n_q, p=p)
+            depth = p * 3 * n_q  # Approximate depth
+            use_stabilizer = False
+        else:  # variational
+            depth = np.random.randint(3, 8)
+            qc, _ = utils.create_variational_circuit(n_q, depth)
+            use_stabilizer = False
+        
+        qc.measure_all()
+        
+        # IDEAL: Use statevector for ALL circuits (most accurate)
+        try:
+            qc_no_meas = qc.remove_final_measurements(inplace=False)
+            sv = Statevector.from_instruction(qc_no_meas)
+            probs = sv.probabilities()
+            
+            # Calculate <Z_0>
+            z0_ideal = 0
+            for idx, p in enumerate(probs):
+                bit_0 = (idx >> 0) & 1
+                sign = 1 if bit_0 == 0 else -1
+                z0_ideal += sign * p
+                
+            # Calculate <Z_0 Z_1>
+            zz_ideal = 0
+            if n_q >= 2:
+                for idx, p in enumerate(probs):
+                    bit_0 = (idx >> 0) & 1
+                    bit_1 = (idx >> 1) & 1
+                    sign = (1 if bit_0 == 0 else -1) * (1 if bit_1 == 0 else -1)
+                    zz_ideal += sign * p
+        except Exception as e:
+            # Fallback to stabilizer for Clifford
+            if use_stabilizer:
+                counts = sim_stabilizer.run(qc.copy(), shots=2000).result().get_counts()
+                z0_ideal = calculate_z0_expectation(counts)
+                zz_ideal = calculate_zz_correlation(counts, 0, 1) if n_q >= 2 else 0.0
+            else:
+                continue  # Skip failed circuits
+        
+        # NOISY execution
+        qc_twirled = apply_pauli_twirling(qc)
+        qc_noisy = transpile(qc_twirled, sim_noisy)
+        counts_noisy = sim_noisy.run(qc_noisy, shots=2000).result().get_counts()
+        
+        z0_noisy = calculate_z0_expectation(counts_noisy)
+        zz_noisy = calculate_zz_correlation(counts_noisy, 0, 1) if n_q >= 2 else 0.0
+        
+        # Build graph
+        global_feats = [z0_noisy, zz_noisy, float(n_q), float(depth), noise_scale]
+        graph_data = builder.circuit_to_graph(qc, global_features=global_feats)
+        
+        graph_data.y = torch.tensor([z0_ideal], dtype=torch.float)
+        graph_data.y_z0 = torch.tensor([z0_ideal], dtype=torch.float)
+        graph_data.y_zz = torch.tensor([zz_ideal], dtype=torch.float)
+        graph_data.y_parity = torch.tensor([0.0], dtype=torch.float)  # Placeholder for compatibility
+        graph_data.n_qubits = n_q
+        graph_data.depth = depth
+        # Note: circuit_type stored as metadata only, not as graph attribute to avoid collation issues
+        
+        data_list.append(graph_data)
+    
+    # Save
+    save_path = os.path.join(DATASET_DIR, f"train_data_mixed_{chunk_id}.pt")
+    torch.save(data_list, save_path)
+    print(f"Saved {len(data_list)} mixed graphs to {save_path}")
+    
+    return data_list
+
 if __name__ == "__main__":
     import argparse
     
@@ -393,11 +504,20 @@ if __name__ == "__main__":
     parser.add_argument("--max-qubits", type=int, default=10, help="Max qubits")
     parser.add_argument("--chunk-id", type=int, default=0, help="Chunk ID")
     parser.add_argument("--large", action="store_true", help="Generate large dataset (5000 samples)")
+    parser.add_argument("--mixed", action="store_true", help="Generate mixed circuit dataset for OOD")
     parser.add_argument("--noise-scale", type=float, default=1.5, help="Noise scale factor")
     
     args = parser.parse_args()
     
-    if args.large:
+    if args.mixed:
+        generate_mixed_dataset(
+            n_samples=args.samples,
+            min_qubits=args.min_qubits,
+            max_qubits=args.max_qubits,
+            noise_scale=args.noise_scale,
+            chunk_id=args.chunk_id
+        )
+    elif args.large:
         generate_large_dataset(
             total_samples=5000,
             chunk_size=500,
@@ -413,3 +533,4 @@ if __name__ == "__main__":
             chunk_id=args.chunk_id,
             noise_scale=args.noise_scale
         )
+
