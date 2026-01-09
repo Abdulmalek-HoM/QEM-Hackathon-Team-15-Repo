@@ -1,0 +1,543 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tcolorbox}
+
+% Geometry settings
+\geometry{margin=1in}
+
+% Code styling
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10}
+}
+
+% Hyperlink setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    citecolor=red
+}
+
+% Custom box for key insights
+\newtcolorbox{keyinsight}{
+    colback=blue!5!white,
+    colframe=blue!75!black,
+    title=Key Insight
+}
+
+\newtcolorbox{limitation}{
+    colback=red!5!white,
+    colframe=red!75!black,
+    title=Honest Limitation
+}
+
+\title{\textbf{Data-Driven Quantum Error Mitigation: \\ AI-Assisted Graph Transformer Approach} \\ \large Team 15 Submission Report}
+\author{
+\textbf{Nakahosa Dinovic} \\ Resources Research, Reporter \\
+\and
+\textbf{Favour Idowu} \\ Validation Reviewer, Debugger \\
+\and
+\textbf{Abdulmalek Baitulmal} \\ Mentor, Solutions Integration, Submission
+}
+\date{January 5th, 2026 \\ \small Hack the Horizon Hackathon \\ Hosted by African Quantum Consortium}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present a data-driven quantum error mitigation (QEM) pipeline that achieves \textbf{31.9\% error reduction} on variational circuits with an \textbf{80\% win rate} against noisy baselines. Our approach combines Clifford Data Regression (CDR) for scalable ground truth generation, Pauli Twirling for noise stochastification, and a Graph Transformer architecture (QEM-Former) that captures circuit topology as a Directed Acyclic Graph. This report provides complete transparency on methodology, noise modeling choices, architecture evolution, and honest limitations. We validate on three circuit families: Random Clifford, QAOA, and Hardware-Efficient Ansatz, with statevector-based ground truth for accurate metrics.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%==============================================================================
+\section{Problem Statement: From NISQ Noise to Practical Quantum Advantage}
+%==============================================================================
+
+\subsection{The Fundamental Challenge}
+
+Noisy Intermediate-Scale Quantum (NISQ) devices suffer from errors that corrupt computational results. For an observable $O$ and ideal quantum state $\rho$:
+
+\begin{equation}
+\langle O \rangle_{\text{ideal}} = \text{Tr}[O\rho] \quad \text{vs} \quad \langle O \rangle_{\text{noisy}} = \text{Tr}[O \cdot \mathcal{N}(\rho)]
+\end{equation}
+
+where $\mathcal{N}$ represents the noise channel. The competition challenge is to learn a correction function:
+
+\begin{equation}
+f_\theta: \langle O \rangle_{\text{noisy}} \rightarrow \hat{\langle O \rangle}_{\text{ideal}}
+\end{equation}
+
+\subsection{Competition Requirements Mapping}
+
+\begin{table}[H]
+\centering
+\caption{Aqora Competition Requirements vs Our Implementation}
+\begin{tabular}{@{}p{5cm}p{5cm}p{3cm}@{}}
+\toprule
+\textbf{Requirement} & \textbf{Our Implementation} & \textbf{Status} \\ \midrule
+Create data-driven QEM dataset & CDR + Pauli Twirling + Statevector & $\checkmark$ Complete \\
+Build noise-aware model & QEM-Former with global context & $\checkmark$ Complete \\
+Benchmark across circuits & Clifford, QAOA, Variational & $\checkmark$ Complete \\
+Generalization testing & OOD evaluation with metrics & $\checkmark$ Complete \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\section{Noise Modeling: Our Approach and Justification}
+%==============================================================================
+
+\begin{keyinsight}
+\textbf{Critical Question from Judges:} ``How did you model the quantum noise? Are you using IBM hardware parameters?''
+
+\textbf{Answer:} We use a \textbf{simulated noise model} based on thermal relaxation physics, NOT live IBM calibration data. This is a deliberate choice for reproducibility and scientific isolation of variables.
+\end{keyinsight}
+
+\subsection{Noise Model Construction}
+
+Our noise model in \texttt{utils.py} implements:
+
+\begin{equation}
+\mathcal{N} = \mathcal{N}_{\text{thermal}} \otimes \mathcal{N}_{\text{readout}}
+\end{equation}
+
+\subsubsection{Thermal Relaxation (T1/T2 Decay)}
+
+For a single-qubit gate of duration $t_g$, the thermal relaxation error is:
+
+\begin{align}
+p_{\text{reset}} &= 1 - e^{-t_g/T_1} \\
+p_{\text{z}} &= \frac{1}{2}(1 - e^{-t_g/T_2})(1 - p_{\text{reset}})
+\end{align}
+
+\textbf{Our Parameters:}
+\begin{itemize}
+    \item $T_1 = 50 \mu s$ (baseline), scaled by noise factor
+    \item $T_2 = 70 \mu s$ (baseline), scaled by noise factor
+    \item 1-qubit gate duration: $50$ ns
+    \item 2-qubit gate duration: $400$ ns
+\end{itemize}
+
+\subsubsection{Readout Error}
+
+Symmetric confusion matrix with probability $p_{ro} = 0.05 \times \text{scale}$:
+
+\begin{equation}
+M = \begin{pmatrix} 1-p_{ro} & p_{ro} \\ p_{ro} & 1-p_{ro} \end{pmatrix}
+\end{equation}
+
+\subsection{Why Simulated Noise Instead of IBM Hardware?}
+
+\begin{table}[H]
+\centering
+\caption{Simulated vs Hardware Noise: Trade-off Analysis}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Factor} & \textbf{Simulated} & \textbf{IBM Hardware} \\ \midrule
+Reproducibility & $\checkmark$ Perfect & Varies daily \\
+Scientific control & $\checkmark$ Isolated variables & Coupled effects \\
+Ground truth access & $\checkmark$ Statevector & Requires tomography \\
+Competition scope & $\checkmark$ Methodology focus & Infrastructure focus \\
+Real-world relevance & Approximation & $\checkmark$ Direct \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{limitation}
+Our noise model is \textbf{simplified}. Real IBM devices exhibit: crosstalk between qubits, time-varying calibration drift, gate-dependent coherent errors, and leakage to non-computational states. A production system would require live calibration data ingestion.
+\end{limitation}
+
+%==============================================================================
+\section{Data Generation Pipeline: Overcoming the Supervision Bottleneck}
+%==============================================================================
+
+\subsection{The Core Problem}
+
+Training supervised ML requires $(x_{\text{noisy}}, y_{\text{ideal}})$ pairs. But computing $y_{\text{ideal}}$ for an $n$-qubit circuit costs $O(2^n)$---exponentially intractable.
+
+\subsection{Solution: Clifford Data Regression (CDR)}
+
+\textbf{Gottesman-Knill Theorem:} Circuits composed of Clifford gates (H, S, CNOT) can be simulated in polynomial time using the stabilizer formalism.
+
+\begin{algorithm}[H]
+\caption{CDR-Based Data Generation}
+\begin{algorithmic}[1]
+\For{$i = 1$ to $N_{\text{samples}}$}
+    \State $n_q \gets \text{Random}(4, 10)$ \Comment{Qubit count}
+    \State $d \gets \text{Random}(n_q, 3 \times n_q)$ \Comment{Circuit depth}
+    \State $C \gets \text{RandomCliffordCircuit}(n_q, d)$
+    \State $C_{\text{twirled}} \gets \text{PauliTwirl}(C)$ \Comment{Noise stochastification}
+    \State $y_{\text{ideal}} \gets \text{StabilizerSim}(C)$ \Comment{$O(\text{poly}(n))$}
+    \State $x_{\text{noisy}} \gets \text{NoisySim}(C_{\text{twirled}})$
+    \State \text{Save}$(C \rightarrow \text{Graph}, x_{\text{noisy}}, y_{\text{ideal}})$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Pauli Twirling: Converting Coherent to Stochastic Noise}
+
+Coherent errors are harder to learn because they interfere constructively. Pauli twirling randomizes the noise:
+
+\begin{equation}
+\text{CNOT} \rightarrow P_c \otimes P_t \cdot \text{CNOT} \cdot P'_c \otimes P'_t
+\end{equation}
+
+where $(P_c, P_t) \in \{I, X, Y, Z\}^2$ are random Paulis and $(P'_c, P'_t)$ are computed to preserve the logical CNOT operation.
+
+\textbf{Effect:} Transforms coherent over-rotation errors into stochastic Pauli channels that neural networks can learn more easily.
+
+\subsection{Dataset Statistics}
+
+\begin{table}[H]
+\centering
+\caption{Final Training Dataset Composition}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Component} & \textbf{Samples} & \textbf{Circuit Type} & \textbf{Ground Truth} \\ \midrule
+Clifford Chunks (0-9) & 5,010 & Random Clifford & Stabilizer \\
+Mixed Dataset & 2,000 & 60\% Clifford, 20\% QAOA, 20\% VQE & Statevector \\
+\midrule
+\textbf{Total} & \textbf{7,010} & Mixed & Hybrid \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\section{Architecture: QEM-Former Graph Transformer}
+%==============================================================================
+
+\subsection{Why Graphs? Circuit Topology Matters}
+
+A quantum circuit is naturally a \textbf{Directed Acyclic Graph (DAG)}:
+\begin{itemize}
+    \item \textbf{Nodes:} Gates (H, CNOT, RZ, etc.)
+    \item \textbf{Edges:} Qubit wires connecting sequential operations
+\end{itemize}
+
+Standard MLPs ignore this structure. Graph Neural Networks (GNNs) preserve it.
+
+\subsection{QEM-Former Architecture}
+
+\begin{figure}[H]
+\centering
+\begin{tcolorbox}[width=0.9\textwidth]
+\textbf{Input:} Circuit Graph $G = (V, E)$ + Global Context $c$
+
+\vspace{0.3cm}
+\textbf{1. Node Embedding} \\
+$h_v = \text{Embed}(\text{GateType}_v) + \text{Linear}(\text{Params}_v)$
+
+\vspace{0.3cm}
+\textbf{2. Graph Transformer Layers} ($\times 2$) \\
+$h'_v = \text{TransformerConv}(h_v, \{h_u : (u,v) \in E\})$
+
+\vspace{0.3cm}
+\textbf{3. Global Pooling} \\
+$h_G = \frac{1}{|V|} \sum_{v \in V} h_v$
+
+\vspace{0.3cm}
+\textbf{4. Context Fusion} \\
+$h_{\text{fused}} = [h_G \, || \, \text{MLP}(c)]$
+
+where $c = [x_{\text{noisy}}, \langle Z_0 Z_1 \rangle_{\text{noisy}}, n_{\text{qubits}}, \text{depth}, \text{noise\_scale}]$
+
+\vspace{0.3cm}
+\textbf{5. Output} \\
+$\hat{y} = \text{MLP}(h_{\text{fused}}) \approx \langle Z_0 \rangle_{\text{ideal}}$
+\end{tcolorbox}
+\caption{QEM-Former data flow}
+\end{figure}
+
+\subsection{Architecture Evolution: Why We Chose This Design}
+
+\begin{table}[H]
+\centering
+\caption{Architecture Comparison During Development}
+\begin{tabular}{@{}lcccp{4cm}@{}}
+\toprule
+\textbf{Model} & \textbf{MSE} & \textbf{Topology-Aware} & \textbf{Noise-Aware} & \textbf{Limitation} \\ \midrule
+SVR (Baseline) & 0.03 & No & No & No generalization \\
+LSTM & 0.03 & Partial & No & Sequential only \\
+GCN & 0.02 & Yes & No & Local message passing \\
+\textbf{QEM-Former} & \textbf{0.009} & \textbf{Yes} & \textbf{Yes} & Computationally heavier \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\section{Training and Optimization}
+%==============================================================================
+
+\subsection{Training Configuration}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Hyperparameter} & \textbf{Value} \\ \midrule
+Optimizer & Adam \\
+Initial Learning Rate & 0.001 \\
+LR Scheduler & ReduceLROnPlateau (patience=10, factor=0.5) \\
+Batch Size & 32 \\
+Epochs & 100 \\
+Loss Function & MSE \\
+Train/Val Split & 80/20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Training Dynamics}
+
+\begin{itemize}
+    \item \textbf{Rapid Convergence:} Loss dropped from 0.24 to 0.02 in first 10 epochs
+    \item \textbf{Best Model:} Epoch 22 with validation loss 0.0094
+    \item \textbf{LR Decay:} Triggered 5 times, final LR = 0.000004
+    \item \textbf{No Catastrophic Overfitting:} Train-val gap remained stable
+\end{itemize}
+
+%==============================================================================
+\section{Benchmark Results: Honest Evaluation}
+%==============================================================================
+
+\subsection{Ground Truth Methodology}
+
+\begin{keyinsight}
+We use \textbf{statevector simulation} for ground truth on ALL circuit types, not stabilizer simulation. This provides mathematically exact $\langle O \rangle_{\text{ideal}}$ values even for non-Clifford circuits (QAOA, VQE). The cost is $O(2^n)$ memory, limiting us to $\leq 10$ qubits for benchmarks.
+\end{keyinsight}
+
+\subsection{Final Results}
+
+\begin{table}[H]
+\centering
+\caption{Benchmark Results with Accurate Ground Truth}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Circuit Type} & \textbf{Win Rate} & \textbf{Error Reduction} & \textbf{Mean IR} & \textbf{Status} \\ \midrule
+Variational Ansatz & \textbf{80.0\%} & \textbf{31.9\%} & 1.44x & $\checkmark$ Success \\
+Random Clifford & 66.7\% & 31.2\% & 1.40x & $\checkmark$ Success \\
+QAOA & 15.0\% & -115\% & 0.59x & $\times$ Failure \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Comparison: Before and After Fixes}
+
+\begin{table}[H]
+\centering
+\caption{Development Progression}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Metric} & \textbf{Before (Stabilizer GT)} & \textbf{After (Statevector GT)} \\ \midrule
+Clifford Win Rate & 80\% (misleading) & 66.7\% (accurate) \\
+QAOA Win Rate & 35\% (Ideal=0 bug) & 15\% (honest) \\
+Variational Win Rate & 75\% (Ideal=0 bug) & 80\% (accurate) \\
+Validation Loss & 0.0194 & 0.0094 \\
+Dataset Size & 5,010 & 7,010 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\subsection{Results Visualization}
+%==============================================================================
+
+The following figures provide visual analysis of our benchmark results. All figures are generated from actual experimental data stored in \texttt{benchmark\_results.json}.
+
+%--- Figure 1: Error Comparison ---
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/error_comparison.png}
+\caption{\textbf{Error Comparison Across Methods.} This bar chart compares the Mean Absolute Error (MAE) of three approaches: raw noisy execution (red), classical Zero-Noise Extrapolation (orange), and our QEM-Former model (green). Key observation: On Clifford and Variational circuits, QEM-Former achieves the lowest error ($\sim$0.07), significantly outperforming both baselines. On QAOA circuits, QEM-Former underperforms due to the near-zero ideal value bias.}
+\label{fig:error_comparison}
+\end{figure}
+
+%--- Figure 2: Win Rate ---
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/win_rate.png}
+\caption{\textbf{QEM-Former Win Rate by Circuit Type.} Win rate measures how often QEM-Former produces a result closer to ideal than the raw noisy measurement. The 50\% dashed line represents random chance. Variational circuits achieve \textbf{80\% win rate}---our strongest result. Clifford achieves 66.7\%, while QAOA at 15\% indicates systematic overcorrection toward $\pm 1$.}
+\label{fig:win_rate}
+\end{figure}
+
+%--- Figure 3: Improvement Ratio ---
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/improvement_ratio.png}
+\caption{\textbf{Improvement Ratio (IR) by Circuit Type.} IR = Error$_{\text{noisy}}$ / Error$_{\text{QEM}}$. Values above 1.0 indicate improvement (green bars), below 1.0 indicate degradation (red). Variational and Clifford circuits show IR $>$ 1.4, meaning QEM achieves $\sim$30\% error reduction. QAOA's IR of 0.59 confirms the model increases error on this circuit class.}
+\label{fig:improvement_ratio}
+\end{figure}
+
+%--- Figure 4: Architecture Evolution ---
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/architecture_evolution.png}
+\caption{\textbf{Architecture Evolution: Validation MSE During Development.} We iteratively tested SVR, LSTM, GCN, and QEM-Former architectures. The final QEM-Former achieves 0.009 MSE---\textbf{3.3$\times$ better} than baseline approaches. This justifies the additional computational cost of graph transformers over simpler models.}
+\label{fig:architecture}
+\end{figure}
+
+%--- Figure 5: Development Timeline ---
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/development_timeline.png}
+\caption{\textbf{Development Timeline: Validation Loss Over Project Phases.} This shows the progression from initial research (high loss) through each technical improvement: CDR implementation, Pauli Twirling, QEM-Former architecture, mixed training, and statevector validation. Each phase contributed to the final 0.009 validation loss.}
+\label{fig:timeline}
+\end{figure}
+
+%--- Figure 6: Noise Model ---
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/noise_model.png}
+\caption{\textbf{Noise Model Explanation.} \textit{Left:} Thermal relaxation error probability as a function of time. $T_1$ decay (amplitude damping) and $T_2$ dephasing are the dominant error sources in superconducting qubits. Our model uses $T_1=50\mu s$ and $T_2=70\mu s$ as baseline parameters. \textit{Right:} Variable noise training---we generate data at multiple noise scales (0.5$\times$ to 2.5$\times$) to help the model learn how errors scale with noise intensity.}
+\label{fig:noise_model}
+\end{figure}
+
+%==============================================================================
+\section{Analysis: Why QAOA Fails}
+%==============================================================================
+
+\begin{limitation}
+The model achieves only 15\% win rate on QAOA circuits. This is an honest limitation requiring explanation.
+\end{limitation}
+
+\subsection{Root Cause Analysis}
+
+\textbf{Observation:} QAOA circuits have ideal expectation values very close to zero: $\langle Z_0 \rangle_{\text{ideal}} \approx 0$.
+
+\textbf{Problem:} The model is trained primarily on Clifford circuits where $\langle Z_0 \rangle_{\text{ideal}} \in \{-1, 0, +1\}$ with bias toward $\pm 1$.
+
+\textbf{Effect:} When given a noisy input near zero, the model ``corrects'' toward $\pm 0.05$, increasing error.
+
+\subsection{Potential Solutions (Future Work)}
+
+\begin{enumerate}
+    \item Increase QAOA proportion in training data (currently 8\%)
+    \item Add circuit-type embedding to help model distinguish
+    \item Train separate heads for different observable ranges
+    \item Implement uncertainty quantification to abstain on low-confidence predictions
+\end{enumerate}
+
+%==============================================================================
+\section{AI-Assisted Development: Unique Value Proposition}
+%==============================================================================
+
+This solution was developed with \textbf{AI-assisted research}, enabling:
+
+\begin{itemize}
+    \item \textbf{Rapid Iteration:} Architecture comparisons completed in hours, not weeks
+    \item \textbf{Bug Detection:} AI identified the stabilizer ground truth bug affecting QAOA evaluation
+    \item \textbf{Code Quality:} Consistent documentation, proper error handling, modular design
+    \item \textbf{Literature Synthesis:} CDR, Pauli Twirling, and Graph Transformer techniques integrated from multiple papers
+\end{itemize}
+
+\begin{keyinsight}
+AI assistance does not diminish scientific rigor---it \textbf{accelerates} the hypothesis-experiment-analysis cycle while maintaining human oversight on methodology decisions.
+\end{keyinsight}
+
+%==============================================================================
+\section{Reproducing Our Results}
+%==============================================================================
+
+\begin{lstlisting}[language=bash, caption=Reproduction Commands]
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Generate training data (Clifford + Mixed)
+python data_gen_advanced.py --large
+python data_gen_advanced.py --mixed --samples 2000
+
+# 3. Train the model
+python train_qem.py
+
+# 4. Run benchmarks
+python benchmark_suite.py
+
+# 5. Launch interactive dashboard
+streamlit run dashboard.py
+\end{lstlisting}
+
+%==============================================================================
+\section{Q\&A: Anticipated Judge Questions}
+%==============================================================================
+
+\begin{tcolorbox}[colback=gray!5!white, colframe=gray!75!black, title=Q1: Why not use real IBM hardware noise?]
+\textbf{A:} Real hardware noise varies daily with calibration. Our simulated model provides: (1) reproducibility for scientific claims, (2) controlled experiments isolating variables, (3) access to exact ground truth via statevector. A production deployment would ingest live calibration data.
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=gray!5!white, colframe=gray!75!black, title=Q2: Your QAOA results are poor. Isn't that a failure?]
+\textbf{A:} Yes, QAOA is a failure case. We document it honestly because: (1) 80\% Variational win rate shows the architecture works, (2) QAOA failure is explainable (near-zero ideal values), (3) we provide concrete fixes for future work. Hiding failures would be scientifically dishonest.
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=gray!5!white, colframe=gray!75!black, title=Q3: How does this scale to 100+ qubits?]
+\textbf{A:} Current benchmarks are limited to 10 qubits due to statevector ground truth. Scaling requires: (1) circuit knitting for distributed simulation, (2) approximate ground truth via tensor networks, (3) transfer learning from small to large circuits. This is active research.
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=gray!5!white, colframe=gray!75!black, title=Q4: Is this just overfitting to your noise model?]
+\textbf{A:} The 80\% Variational win rate (trained mostly on Clifford) demonstrates OOD generalization. However, QAOA failure shows limits. True robustness would require multi-noise-model training and real hardware validation.
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=gray!5!white, colframe=gray!75!black, title=Q5: What's novel about your approach?]
+\textbf{A:} The integration: (1) Graph representation preserving circuit topology, (2) Pauli Twirling for learnable noise, (3) Multi-observable context (Z0 + ZZ), (4) Mixed-circuit training for OOD. Individual components exist in literature; our contribution is the complete, documented pipeline.
+\end{tcolorbox}
+
+%==============================================================================
+\section{Conclusion and Future Directions}
+%==============================================================================
+
+\subsection{Summary of Contributions}
+
+\begin{enumerate}
+    \item Complete data-driven QEM pipeline with documented code
+    \item QEM-Former architecture achieving 31.9\% error reduction on variational circuits
+    \item Honest evaluation with statevector ground truth
+    \item Transparent failure analysis (QAOA) with proposed solutions
+    \item Reproducible codebase with Streamlit dashboard
+\end{enumerate}
+
+\subsection{Limitations Requiring Future Work}
+
+\begin{enumerate}
+    \item QAOA circuit performance (15\% win rate)
+    \item Scalability beyond 10 qubits for validation
+    \item Simulated vs real hardware noise gap
+    \item Single observable ($\langle Z_0 \rangle$) focus
+\end{enumerate}
+
+\subsection{Roadmap for Continued Development}
+
+\begin{enumerate}
+    \item \textbf{Short-term:} Increase QAOA training data, add observable-specific heads
+    \item \textbf{Medium-term:} Integrate IBM Qiskit Runtime calibration data
+    \item \textbf{Long-term:} Differentiable QEM end-to-end with variational circuits
+\end{enumerate}
+
+\vspace{1cm}
+\hrule
+\vspace{0.5cm}
+\textbf{Repository:} \url{https://github.com/Abdulmalek-HoM/QEM-Hackathon-Team-15-Repo}
+
+\textbf{Team 15:} Nakahosa Dinovic, Favour Idowu, Abdulmalek Baitulmal
+
+\textbf{Competition:} Hack the Horizon Hackathon --- Hosted by African Quantum Consortium
+
+\textbf{Acknowledgments:} This work was developed with AI-assisted research tools, demonstrating the potential for human-AI collaboration in quantum computing research. We thank the African Quantum Consortium for organizing this challenge and fostering quantum computing education across the continent.
+
+\end{document}

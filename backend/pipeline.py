@@ -95,31 +95,38 @@ class HackathonPipeline:
             # Training data used Sim_Noisy (Scale 1.5).
             # Here we should prob feed the equivalent.
             
-            # For hackathon speed, let's just use base_estimate as proxy or re-run raw.
-            # Re-running raw is safer for "Noisy Input".
-            sim = AerSimulator() # Standard noise? No, use utils.build_noise like training
-            nm = utils.build_noise_model(scale=1.0) # Baseline noise
+            # Run noisy simulation to get context features
+            nm = utils.build_noise_model(scale=1.0)  # Baseline noise
             sim = AerSimulator(noise_model=nm)
-            raw_noisy_val = 0
-            # Check if we can get it from ZNE to save time? 
-            # ZNE ran scale 1.0. But `run_zne` swallows it. 
-            # Let's simple re-run or assume noise is bad.
             
-            # Let's run just one raw shot for context
             t_qc = transpile(qc, sim)
             counts = sim.run(t_qc, shots=1000).result().get_counts()
             shots = sum(counts.values())
+            
+            # Calculate Z0 expectation
             z0_val = 0
             for b, c in counts.items():
                 val = 1 if b[-1] == '0' else -1
                 z0_val += val * c
-            raw_val = z0_val / shots
+            z0_noisy = z0_val / shots
             
-            # Build Graph
-            # context: [Noisy, n_q, depth]
+            # Calculate ZZ correlation (Z0*Z1) if >= 2 qubits
             n_q = qc.num_qubits
+            zz_noisy = 0.0
+            if n_q >= 2:
+                for b, c in counts.items():
+                    try:
+                        z0 = 1 if b[-1] == '0' else -1
+                        z1 = 1 if b[-2] == '0' else -1
+                        zz_noisy += z0 * z1 * c
+                    except IndexError:
+                        continue
+                zz_noisy = zz_noisy / shots
+            
+            # Build Graph with 5-dim global context: [z0_noisy, zz_noisy, n_qubits, depth, noise_scale]
             depth = qc.depth()
-            global_attr = [raw_val, float(n_q), float(depth)]
+            noise_scale = 1.0  # We use baseline noise for inference
+            global_attr = [z0_noisy, zz_noisy, float(n_q), float(depth), noise_scale]
             
             graph = self.graph_builder.circuit_to_graph(qc, global_features=global_attr).to(self.device)
             
