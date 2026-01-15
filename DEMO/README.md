@@ -15,6 +15,8 @@ This folder contains all materials needed for the video presentation requested b
 | `SLIDES_CONTENT.md` | 15 slides + 3 backup slides | Content for deck |
 | `Q_AND_A_PREP.md` | 13 anticipated questions + answers | Judge Q&A prep |
 | `DEMO_WALKTHROUGH.md` | Step-by-step dashboard demo guide | 2 min demo |
+| `TECHNICAL_DEMO_SCRIPT.md` | **Code walkthrough with exact line numbers** | 6 min technical |
+| `CODE_HIGHLIGHTS.md` | Key code snippets to show in video | Quick reference |
 
 ### Visual Assets (`figures/` folder)
 
