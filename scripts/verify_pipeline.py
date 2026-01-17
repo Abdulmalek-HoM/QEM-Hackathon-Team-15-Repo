@@ -10,7 +10,7 @@ def verify_pipeline():
     
     # 1. Clean previous data/models for fresh test
     print("\n[Step 1] Cleaning old artifacts...")
-    if os.path.exists("qem_former.pth"): os.remove("qem_former.pth")
+    if os.path.exists("weights/qem_former.pth"): os.remove("weights/qem_former.pth")
     # Don't delete dataset dir, just overwrite chunk 0
     
     # 2. Generate Data (Small Chunk)
@@ -33,7 +33,7 @@ def verify_pipeline():
         traceback.print_exc()
         return
         
-    if not os.path.exists("qem_former.pth"):
+    if not os.path.exists("weights/qem_former.pth"):
         print("❌ Model file not found after training!")
         return
     print("✅ Training Success!")
@@ -41,7 +41,7 @@ def verify_pipeline():
     # 4. Benchmark
     print("\n[Step 4] Running Benchmark Suite...")
     try:
-        benchmark_models("qem_former.pth")
+        benchmark_models("weights/qem_former.pth")
     except Exception as e:
         print(f"❌ Benchmarking Failed: {e}")
         import traceback

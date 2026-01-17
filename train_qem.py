@@ -13,7 +13,7 @@ from datetime import datetime
 
 # Configuration
 DATASET_DIR = "dataset"
-MODEL_SAVE_PATH = "qem_former.pth"
+MODEL_SAVE_PATH = "weights/qem_former.pth"
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 EPOCHS = 100
@@ -144,7 +144,7 @@ def train():
     print(f"Model saved to {MODEL_SAVE_PATH}")
     
     # 4. Save Training Metrics
-    metrics_path = "training_metrics.json"
+    metrics_path = "assets/training_metrics.json"
     with open(metrics_path, 'w') as f:
         json.dump(metrics, f, indent=2)
     print(f"Metrics saved to {metrics_path}")
@@ -184,7 +184,7 @@ def plot_training_curves(metrics):
     plt.tight_layout()
     
     # Save figure
-    plot_path = "training_curves.png"
+    plot_path = "assets/training_curves.png"
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()
     

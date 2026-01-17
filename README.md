@@ -6,7 +6,7 @@
 
 *Awarded for standout originality and a clear technical leap beyond the baseline*
 
-![The De-Noisers Team](QEM-FORMER%20The%20De-Noisers%20Team%2015.png)
+![The De-Noisers Team](assets/QEM-FORMER%20The%20De-Noisers%20Team%2015.png)
 
 **Team 15 — The De-Noisers**
 
@@ -131,13 +131,13 @@ Our Streamlit dashboard provides real-time quantum error mitigation with visuali
 <div align="center">
 
 ### Live Demo Mode
-![Dashboard Overview](Dashboard%201.png)
+![Dashboard Overview](assets/Dashboard1.png)
 
 ### Benchmark Results
-![Dashboard Benchmarks](Dashboard%202.png)
+![Dashboard Benchmarks](assets/Dashboard2.png)
 
 ### Presentation Mode
-![Dashboard Presentation](Dashboard%203.png)
+![Dashboard Presentation](assets/Dashboard3.png)
 
 </div>
 
@@ -184,15 +184,27 @@ streamlit run dashboard.py
 
 ## 📁 Project Structure
 
-| File | Description |
-|------|-------------|
-| `data_gen_advanced.py` | CDR + Pauli Twirling data generation |
-| `models/qem_former.py` | Graph Transformer architecture |
-| `train_qem.py` | Training with visualization |
-| `benchmark_suite.py` | OOD testing + JSON export |
-| `dashboard.py` | Streamlit visualization interface |
-| `backend/pipeline.py` | Inference pipeline |
-| `Slides/figures/` | Presentation slides and diagrams |
+```
+.
+├── README.md                 # This file
+├── dashboard.py              # Streamlit visualization interface
+├── train_qem.py              # Model training script
+├── data_gen_advanced.py      # CDR + Pauli Twirling data generation
+├── benchmark_suite.py        # OOD testing + JSON export
+├── utils.py                  # Shared utilities
+├── requirements.txt          # Python dependencies
+│
+├── models/                   # Model architectures
+│   └── qem_former.py         # Graph Transformer
+├── backend/                  # Inference pipeline
+│   └── pipeline.py
+├── dataset/                  # Training data (.pt files)
+├── assets/                   # Images & screenshots
+├── docs/                     # LaTeX reports
+├── notebooks/                # Educational Jupyter notebooks (Modules 1-7)
+├── scripts/                  # Utility scripts
+└── Slides/figures/           # Presentation slides
+```
 
 ---
 

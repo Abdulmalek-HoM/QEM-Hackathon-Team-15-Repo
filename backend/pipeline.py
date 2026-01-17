@@ -15,7 +15,7 @@ from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
 class HackathonPipeline:
-    def __init__(self, model_path="qem_former.pth"):
+    def __init__(self, model_path="weights/qem_former.pth"):
         self.device = torch.device('cpu') # Force CPU for safety in dashboard usually
         self.graph_builder = QEMGraphBuilder()
         

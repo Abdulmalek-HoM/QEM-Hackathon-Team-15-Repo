@@ -51,7 +51,7 @@ def calculate_ideal_z0_statevector(qc):
         print(f"  Statevector failed: {e}")
         return None
 
-def benchmark_models(model_path="qem_former.pth", save_results=True):
+def benchmark_models(model_path="weights/qem_former.pth", save_results=True):
     """
     Benchmarks the trained QEM-Former against Noisy Baseline and Mitiq ZNE.
     Uses STATEVECTOR for accurate ground truth on all circuit types.
@@ -237,7 +237,7 @@ def benchmark_models(model_path="qem_former.pth", save_results=True):
     
     # Save results
     if save_results:
-        results_path = "benchmark_results.json"
+        results_path = "assets/benchmark_results.json"
         all_results['timestamp'] = datetime.now().isoformat()
         all_results['note'] = "Ground truth computed via statevector simulation (accurate)"
         with open(results_path, 'w') as f:
@@ -250,7 +250,7 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="QEM Benchmark Suite (Fixed)")
-    parser.add_argument("--model", type=str, default="qem_former.pth", help="Model weights path")
+    parser.add_argument("--model", type=str, default="weights/qem_former.pth", help="Model weights path")
     parser.add_argument("--no-save", action="store_true", help="Don't save results to JSON")
     
     args = parser.parse_args()

@@ -29,7 +29,7 @@ async def startup_event():
     global pipeline
     print("🚀 Initializing QEM Pipeline...")
     # Assume model is at root
-    model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'qem_lstm.pth'))
+    model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'weights', 'qem_lstm.pth'))
     pipeline = HackathonPipeline(lstm_path=model_path)
 
 @app.get("/")

@@ -84,7 +84,7 @@ st.markdown("""
 @st.cache_data
 def load_benchmark_results():
     try:
-        with open("benchmark_results.json", "r") as f:
+        with open("assets/benchmark_results.json", "r") as f:
             return json.load(f)
     except:
         return None
@@ -92,7 +92,7 @@ def load_benchmark_results():
 # Initialize Pipeline
 @st.cache_resource
 def load_pipeline():
-    return HackathonPipeline(model_path="qem_former.pth")
+    return HackathonPipeline(model_path="weights/qem_former.pth")
 
 pipeline = load_pipeline()
 benchmark_data = load_benchmark_results()

@@ -17,7 +17,7 @@ plt.rcParams['axes.labelsize'] = 11
 
 def load_results():
     """Load benchmark results from JSON"""
-    with open('benchmark_results.json', 'r') as f:
+    with open('assets/benchmark_results.json', 'r') as f:
         return json.load(f)
 
 def plot_comparison_bar_chart(results):
