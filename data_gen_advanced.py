@@ -384,12 +384,23 @@ def generate_large_dataset(total_samples=5000, chunk_size=500, **kwargs):
     print(f"Total samples: {len(all_data)}")
     return all_data
 
-def generate_mixed_dataset(n_samples=2000, min_qubits=4, max_qubits=8, noise_scale=1.5, chunk_id=100):
+def generate_mixed_dataset(n_samples=2000, min_qubits=4, max_qubits=8, noise_scale=1.5, chunk_id=100,
+                            clifford_frac=0.40, qaoa_frac=0.35, variational_frac=0.25):
     """
     Generate a MIXED dataset with Clifford, QAOA, and Variational circuits.
     Uses STATEVECTOR for accurate ground truth on non-Clifford circuits.
     
     This improves OOD generalization significantly.
+    
+    Args:
+        n_samples: Number of samples to generate
+        min_qubits: Minimum qubit count
+        max_qubits: Maximum qubit count
+        noise_scale: Noise intensity
+        chunk_id: Chunk identifier
+        clifford_frac: Fraction of Clifford circuits (default 0.40)
+        qaoa_frac: Fraction of QAOA circuits (default 0.35)
+        variational_frac: Fraction of Variational circuits (default 0.25)
     """
     from qiskit.quantum_info import Statevector
     
@@ -406,11 +417,14 @@ def generate_mixed_dataset(n_samples=2000, min_qubits=4, max_qubits=8, noise_sca
     sim_noisy = AerSimulator(noise_model=noise_model)
     sim_stabilizer = AerSimulator(method='stabilizer')
     
-    # Circuit type distribution: 60% Clifford, 20% QAOA, 20% Variational
-    circuit_types = ['clifford'] * 60 + ['qaoa'] * 20 + ['variational'] * 20
+    # Build circuit type distribution from fractions
+    clifford_count = int(clifford_frac * 100)
+    qaoa_count = int(qaoa_frac * 100)
+    variational_count = 100 - clifford_count - qaoa_count
+    circuit_types = ['clifford'] * clifford_count + ['qaoa'] * qaoa_count + ['variational'] * variational_count
     
     print(f"Generating MIXED Dataset (Chunk {chunk_id}): {n_samples} samples")
-    print(f"  Distribution: 60% Clifford, 20% QAOA, 20% Variational")
+    print(f"  Distribution: {clifford_frac*100:.0f}% Clifford, {qaoa_frac*100:.0f}% QAOA, {variational_frac*100:.0f}% Variational")
     print(f"  Qubits: {min_qubits}-{max_qubits}, Noise Scale: {noise_scale}")
     
     iterator = tqdm(range(n_samples), desc="Mixed Gen") if use_tqdm else range(n_samples)
@@ -506,6 +520,9 @@ if __name__ == "__main__":
     parser.add_argument("--large", action="store_true", help="Generate large dataset (5000 samples)")
     parser.add_argument("--mixed", action="store_true", help="Generate mixed circuit dataset for OOD")
     parser.add_argument("--noise-scale", type=float, default=1.5, help="Noise scale factor")
+    parser.add_argument("--qaoa-frac", type=float, default=0.35, help="Fraction of QAOA circuits (default 0.35)")
+    parser.add_argument("--clifford-frac", type=float, default=0.40, help="Fraction of Clifford circuits (default 0.40)")
+    parser.add_argument("--variational-frac", type=float, default=0.25, help="Fraction of Variational circuits (default 0.25)")
     
     args = parser.parse_args()
     
@@ -515,7 +532,10 @@ if __name__ == "__main__":
             min_qubits=args.min_qubits,
             max_qubits=args.max_qubits,
             noise_scale=args.noise_scale,
-            chunk_id=args.chunk_id
+            chunk_id=args.chunk_id,
+            clifford_frac=args.clifford_frac,
+            qaoa_frac=args.qaoa_frac,
+            variational_frac=args.variational_frac
         )
     elif args.large:
         generate_large_dataset(
@@ -533,4 +553,5 @@ if __name__ == "__main__":
             chunk_id=args.chunk_id,
             noise_scale=args.noise_scale
         )
+
 

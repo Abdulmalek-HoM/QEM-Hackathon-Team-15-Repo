@@ -13,6 +13,8 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from backend.pipeline import HackathonPipeline
 import utils
 from qiskit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+import networkx as nx
 
 # Page Config
 st.set_page_config(
@@ -204,6 +206,96 @@ def plot_connectivity_heatmap(qc):
         spine.set_color('#333')
     return fig
 
+def plot_circuit_dag(qc):
+    """Visualize the circuit as a Directed Acyclic Graph (DAG)."""
+    dag = circuit_to_dag(qc)
+    
+    # Build networkx graph from DAG
+    G = nx.DiGraph()
+    
+    # Gate type colors
+    gate_colors = {
+        'h': '#3498DB',      # Blue - Hadamard
+        's': '#9B59B6',      # Purple - S gate
+        'sdg': '#9B59B6',    # Purple - S dagger
+        'x': '#E74C3C',      # Red - Pauli X
+        'y': '#F39C12',      # Orange - Pauli Y
+        'z': '#2ECC71',      # Green - Pauli Z
+        'cx': '#1ABC9C',     # Teal - CNOT
+        'cz': '#16A085',     # Dark teal - CZ
+        'rx': '#E91E63',     # Pink - RX
+        'ry': '#FF5722',     # Deep orange - RY
+        'rz': '#00BCD4',     # Cyan - RZ
+        'measure': '#95A5A6', # Gray - Measurement
+        'barrier': '#34495E', # Dark gray - Barrier
+    }
+    
+    node_labels = {}
+    node_colors = []
+    node_map = {}
+    idx = 0
+    
+    # Add nodes (gates)
+    for node in dag.topological_op_nodes():
+        node_id = f"{node.name}_{idx}"
+        node_map[node] = node_id
+        G.add_node(node_id)
+        
+        # Create label with qubit info
+        qubits = [qc.find_bit(q).index for q in node.qargs]
+        if len(qubits) == 1:
+            node_labels[node_id] = f"{node.name.upper()}\nq{qubits[0]}"
+        else:
+            node_labels[node_id] = f"{node.name.upper()}\nq{qubits[0]},q{qubits[1]}"
+        
+        node_colors.append(gate_colors.get(node.name, '#7F8C8D'))
+        idx += 1
+    
+    # Add edges (dependencies)
+    last_node_on_qubit = {}
+    idx = 0
+    for node in dag.topological_op_nodes():
+        node_id = node_map[node]
+        for q in node.qargs:
+            qubit_idx = qc.find_bit(q).index
+            if qubit_idx in last_node_on_qubit:
+                G.add_edge(last_node_on_qubit[qubit_idx], node_id)
+            last_node_on_qubit[qubit_idx] = node_id
+        idx += 1
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    if len(G.nodes()) > 0:
+        # Use layered layout for DAG
+        try:
+            pos = nx.nx_agraph.graphviz_layout(G, prog='dot')
+        except:
+            # Fallback to spring layout if graphviz not available
+            pos = nx.spring_layout(G, k=2, iterations=50)
+        
+        # Draw edges
+        nx.draw_networkx_edges(G, pos, ax=ax, edge_color='#555555', 
+                               arrows=True, arrowsize=15, 
+                               connectionstyle='arc3,rad=0.1',
+                               alpha=0.7)
+        
+        # Draw nodes
+        nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_colors,
+                               node_size=1500, alpha=0.9)
+        
+        # Draw labels
+        nx.draw_networkx_labels(G, pos, node_labels, ax=ax, 
+                                font_size=8, font_color='white',
+                                font_weight='bold')
+    
+    ax.set_title('Circuit as Directed Acyclic Graph (DAG)', fontsize=14, color='white')
+    ax.set_facecolor('#0E1117')
+    fig.patch.set_facecolor('#0E1117')
+    ax.axis('off')
+    
+    return fig, len(G.nodes()), len(G.edges())
+
 # --- Sidebar ---
 st.sidebar.title("🎛️ Control Panel")
 
@@ -317,7 +409,7 @@ with main_tab1:
         # Visualization Row
         st.markdown("### 📊 Performance Analysis")
         
-        vis_tab1, vis_tab2, vis_tab3, vis_tab4 = st.tabs(["Comparison", "Error by Qubit", "Connectivity", "Circuit Viewer"])
+        vis_tab1, vis_tab2, vis_tab3, vis_tab4, vis_tab5 = st.tabs(["Comparison", "Error by Qubit", "Connectivity", "DAG Graph", "Circuit Viewer"])
         
         with vis_tab1:
             # Comparison Chart
@@ -372,6 +464,35 @@ with main_tab1:
             st.caption("Shows 2-qubit gate interactions in the circuit topology.")
         
         with vis_tab4:
+            st.markdown("#### 🔗 Circuit as Directed Acyclic Graph (DAG)")
+            st.markdown("""
+            This visualization shows how the quantum circuit is transformed into a graph structure 
+            that QEM-Former processes. **Nodes** represent gates, **edges** represent qubit wire dependencies.
+            """)
+            
+            fig_dag, n_nodes, n_edges = plot_circuit_dag(qc)
+            st.pyplot(fig_dag)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Nodes (Gates)", n_nodes)
+            with col2:
+                st.metric("Edges (Dependencies)", n_edges)
+            with col3:
+                st.metric("Circuit Depth", qc.depth())
+            
+            st.markdown("""
+            **Color Legend:**
+            - 🔵 Blue: Hadamard (H)
+            - 🔴 Red: Pauli-X
+            - 🟢 Green: Pauli-Z  
+            - 🟡 Orange: Pauli-Y
+            - 🩵 Teal: CNOT (CX)
+            - 🩷 Pink: RX rotation
+            - 🔷 Cyan: RZ rotation
+            """)
+        
+        with vis_tab5:
             st.markdown("#### Circuit Diagram")
             st.pyplot(qc.draw('mpl'))
 
