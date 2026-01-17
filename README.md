@@ -244,6 +244,48 @@ See `requirements.txt` for complete dependencies.
 
 ---
 
+## 🚀 Post-Hackathon Improvements
+
+After winning the Innovation Award, we continued improving the model with a larger, more balanced dataset.
+
+### Dataset Enhancement
+- **Before:** 7,010 samples (60% Clifford, 20% QAOA, 20% Variational)
+- **After:** 25,010 samples (40% Clifford, **35% QAOA**, 25% Variational)
+
+### Dramatic Results Improvement
+
+<div align="center">
+
+![Win Rate Comparison](assets/post_hackathon/win_rate_comparison.png)
+
+</div>
+
+| Circuit Type | Win Rate (Before) | Win Rate (After) | Improvement |
+|--------------|-------------------|------------------|-------------|
+| **QAOA** | 15% ❌ | **95%** ✅ | +533% |
+| Variational | 80% | **85%** | +6% |
+| Clifford | 66.7% | **86.7%** | +30% |
+
+### QAOA Fix
+
+Our biggest weakness became our biggest strength:
+
+<div align="center">
+
+![QAOA Fix](assets/post_hackathon/qaoa_fix.png)
+
+</div>
+
+- **Error Reduction:** -115% → **+95.9%**
+- **Improvement Ratio:** 0.46x → **68.21x**
+- **Root Cause:** Increased QAOA training data from 8% to 35%
+
+### Key Takeaway
+
+> 📊 **Data distribution matters more than model complexity.** The same QEM-Former architecture achieved 68x improvement on QAOA simply by rebalancing the training data.
+
+---
+
 ## 🏆 Recognition
 
 **🏅 Innovation Award Winner — Hack the Horizon 2025**
