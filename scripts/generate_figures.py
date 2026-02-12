@@ -50,7 +50,7 @@ def plot_comparison_bar_chart(results):
     # Create bars
     bars1 = ax.bar(x - width, noisy_errors, width, label='Noisy (Baseline)', color='#e74c3c', alpha=0.8)
     bars2 = ax.bar(x, zne_errors, width, label='ZNE (Physics)', color='#f39c12', alpha=0.8)
-    bars3 = ax.bar(x + width, qem_errors, width, label='QEM-Former (AI)', color='#27ae60', alpha=0.8)
+    bars3 = ax.bar(x + width, qem_errors, width, label='CDRFormer (AI)', color='#27ae60', alpha=0.8)
     
     # Add value labels
     for bars in [bars1, bars2, bars3]:
@@ -63,7 +63,7 @@ def plot_comparison_bar_chart(results):
     
     ax.set_xlabel('Circuit Type')
     ax.set_ylabel('Mean Absolute Error')
-    ax.set_title('Error Comparison: Noisy vs ZNE vs QEM-Former')
+    ax.set_title('Error Comparison: Noisy vs ZNE vs CDRFormer')
     ax.set_xticks(x)
     ax.set_xticklabels(circuit_types)
     ax.legend()
@@ -98,7 +98,7 @@ def plot_win_rate_chart(results):
     
     ax.axvline(x=50, color='gray', linestyle='--', alpha=0.5, label='Random (50%)')
     ax.set_xlabel('Win Rate (%)')
-    ax.set_title('QEM-Former Win Rate by Circuit Type')
+    ax.set_title('CDRFormer Win Rate by Circuit Type')
     ax.set_xlim(0, 100)
     ax.legend(loc='lower right')
     
@@ -133,7 +133,7 @@ def plot_improvement_ratio(results):
     ax.axhline(y=1.0, color='gray', linestyle='--', alpha=0.7, label='No Improvement (1.0x)')
     ax.set_xlabel('Circuit Type')
     ax.set_ylabel('Improvement Ratio')
-    ax.set_title('QEM-Former Improvement Ratio\n(Higher = Better)')
+    ax.set_title('CDRFormer Improvement Ratio\n(Higher = Better)')
     ax.legend(loc='upper right')
     ax.set_ylim(0, max(irs) * 1.3)
     
@@ -146,7 +146,7 @@ def plot_architecture_evolution():
     """Create architecture comparison chart"""
     fig, ax = plt.subplots(figsize=(9, 5))
     
-    models = ['SVR\n(Baseline)', 'LSTM', 'GCN', 'QEM-Former']
+    models = ['SVR\n(Baseline)', 'LSTM', 'GCN', 'CDRFormer']
     mse_values = [0.030, 0.030, 0.020, 0.009]
     
     colors = ['#95a5a6', '#95a5a6', '#3498db', '#27ae60']
@@ -187,7 +187,7 @@ def plot_development_timeline():
         'Research\nPhase',
         'CDR\nImplementation',
         'Pauli\nTwirling',
-        'QEM-Former\nArchitecture',
+        'CDRFormer\nArchitecture',
         'Mixed\nTraining',
         'Statevector\nValidation',
         'Final\nBenchmark'

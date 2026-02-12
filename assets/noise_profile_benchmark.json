@@ -1,0 +1,42 @@
+{
+  "results": {
+    "Incoherent (Depolarizing)": {
+      "noise_profile": "Incoherent (Depolarizing)",
+      "win_rate": 0.9333333333333333,
+      "mae_noisy": 0.019233333333333335,
+      "mae_cdrformer": 0.0009395544727643293,
+      "n_circuits": 30
+    },
+    "Coherent (Over-rotation)": {
+      "noise_profile": "Coherent (Over-rotation)",
+      "win_rate": 0.9333333333333333,
+      "mae_noisy": 0.05756666666666666,
+      "mae_cdrformer": 0.001463106026252114,
+      "n_circuits": 30
+    },
+    "Combined (Incoh+Coh)": {
+      "noise_profile": "Combined (Incoh+Coh)",
+      "win_rate": 0.9,
+      "mae_noisy": 0.01436666666666667,
+      "mae_cdrformer": 0.0009164887169996908,
+      "n_circuits": 30
+    },
+    "FakeHanoi (27Q IBM)": {
+      "noise_profile": "FakeHanoi (27Q IBM)",
+      "win_rate": 1.0,
+      "mae_noisy": 0.019966666666666705,
+      "mae_cdrformer": 0.0008886160949866103,
+      "n_circuits": 30
+    },
+    "FakeCairo (27Q IBM)": {
+      "noise_profile": "FakeCairo (27Q IBM)",
+      "win_rate": 0.9666666666666667,
+      "mae_noisy": 0.018599999999999974,
+      "mae_cdrformer": 0.0009225467840830854,
+      "n_circuits": 30
+    }
+  },
+  "timestamp": "2026-02-05T21:01:11.088545",
+  "model_path": "weights/cdr_former.pth",
+  "fake_backends_available": true
+}

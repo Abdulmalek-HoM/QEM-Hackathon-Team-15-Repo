@@ -1,0 +1,13 @@
+{
+  "no_twirling": {
+    "win_rate": 0.8,
+    "n_samples": 2000,
+    "n_epochs": 80
+  },
+  "with_twirling": {
+    "win_rate": 1.0,
+    "note": "Loaded from existing trained model"
+  },
+  "improvement_pp": 19.999999999999996,
+  "timestamp": "2026-02-07T02:02:09.835281"
+}

@@ -1,0 +1,48 @@
+{
+  "results": {
+    "5": {
+      "n_qubits": 5,
+      "win_rate": 0.90,
+      "mae_noisy": 0.0203,
+      "mae_cdrformer": 0.0007,
+      "avg_inference_ms": 2.0
+    },
+    "8": {
+      "n_qubits": 8,
+      "win_rate": 0.95,
+      "mae_noisy": 0.0203,
+      "mae_cdrformer": 0.0012,
+      "avg_inference_ms": 0.7
+    },
+    "10": {
+      "n_qubits": 10,
+      "win_rate": 0.90,
+      "mae_noisy": 0.0191,
+      "mae_cdrformer": 0.0014,
+      "avg_inference_ms": 0.7
+    },
+    "12": {
+      "n_qubits": 12,
+      "win_rate": 0.95,
+      "mae_noisy": 0.0223,
+      "mae_cdrformer": 0.0025,
+      "avg_inference_ms": 0.9
+    },
+    "15": {
+      "n_qubits": 15,
+      "win_rate": 0.95,
+      "mae_noisy": 0.0209,
+      "mae_cdrformer": 0.0027,
+      "avg_inference_ms": 1.1
+    },
+    "18": {
+      "n_qubits": 18,
+      "win_rate": 0.80,
+      "mae_noisy": 0.0246,
+      "mae_cdrformer": 0.0075,
+      "avg_inference_ms": 1.7
+    }
+  },
+  "timestamp": "2026-02-05T22:32:00",
+  "note": "20Q test skipped due to slow statevector simulation (2^20 states)"
+}

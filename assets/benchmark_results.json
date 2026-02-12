@@ -2,33 +2,33 @@
   "in_distribution": {
     "name": "In-Distribution (Random Clifford)",
     "n_circuits": 30,
-    "mean_noisy_error": 0.1315666666666665,
-    "mean_zne_error": 0.12565555555555516,
-    "mean_qem_error": 0.03594116444389007,
-    "mean_ir_qem": 5.759398320722369,
-    "win_rate": 0.8666666666666667,
-    "std_qem_error": 0.025914547926851435
+    "mean_noisy_error": 0.10303333333333325,
+    "mean_zne_error": 0.094122222222222,
+    "mean_qem_error": 0.038210324694712874,
+    "mean_ir_qem": 3.7835675567262497,
+    "win_rate": 0.7666666666666667,
+    "std_qem_error": 0.02546571181051137
   },
   "ood_qaoa": {
     "name": "OOD: QAOA Circuits",
     "n_circuits": 20,
-    "mean_noisy_error": 0.02395000000000003,
-    "mean_zne_error": 0.027116666666666678,
-    "mean_qem_error": 0.000977046042680723,
-    "mean_ir_qem": 68.20699945328062,
+    "mean_noisy_error": 0.032550000000000016,
+    "mean_zne_error": 0.022116666666666653,
+    "mean_qem_error": 0.0008849818259477824,
+    "mean_ir_qem": 85.21269036634607,
     "win_rate": 0.95,
-    "std_qem_error": 0.00043605502643354125
+    "std_qem_error": 0.0007460991063221417
   },
   "ood_variational": {
     "name": "OOD: Variational Ansatz",
     "n_circuits": 20,
-    "mean_noisy_error": 0.08737106217225998,
-    "mean_zne_error": 0.09307583146150666,
-    "mean_qem_error": 0.031587723683415954,
-    "mean_ir_qem": 10.609352536382257,
-    "win_rate": 0.85,
-    "std_qem_error": 0.02426860596334424
+    "mean_noisy_error": 0.0937561697000983,
+    "mean_zne_error": 0.09339150219967832,
+    "mean_qem_error": 0.033132740832658186,
+    "mean_ir_qem": 4.960015058601039,
+    "win_rate": 0.9,
+    "std_qem_error": 0.024717711952741184
   },
-  "timestamp": "2026-01-17T12:07:58.343906",
+  "timestamp": "2026-02-05T13:32:55.276877",
   "note": "Ground truth computed via statevector simulation (accurate)"
 }

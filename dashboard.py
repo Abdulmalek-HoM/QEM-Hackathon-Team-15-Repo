@@ -18,7 +18,7 @@ import networkx as nx
 
 # Page Config
 st.set_page_config(
-    page_title="QEM-Former: Quantum Error Mitigation",
+    page_title="CDRFormer: Quantum Error Mitigation",
     page_icon="⚛️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -92,7 +92,7 @@ def load_benchmark_results():
 # Initialize Pipeline
 @st.cache_resource
 def load_pipeline():
-    return HackathonPipeline(model_path="weights/qem_former.pth")
+    return HackathonPipeline(model_path="weights/cdr_former.pth")
 
 pipeline = load_pipeline()
 benchmark_data = load_benchmark_results()
@@ -158,7 +158,7 @@ def plot_prediction_scatter(pipeline, n_samples=20):
     ax.plot([min_val, max_val], [min_val, max_val], 'g--', alpha=0.7, label='Perfect')
     
     ax.set_xlabel('Actual (Ideal)')
-    ax.set_ylabel('Predicted (QEM-Former)')
+    ax.set_ylabel('Predicted (CDRFormer)')
     ax.set_title('Prediction vs Actual')
     ax.set_facecolor('#0E1117')
     fig.patch.set_facecolor('#0E1117')
@@ -300,7 +300,7 @@ def plot_circuit_dag(qc):
 st.sidebar.title("🎛️ Control Panel")
 
 # Model Info
-st.sidebar.markdown("### 🤖 Model: QEM-Former")
+st.sidebar.markdown("### 🤖 Model: CDRFormer")
 st.sidebar.caption("Graph Transformer with Global Self-Attention")
 
 st.sidebar.markdown("---")
@@ -341,13 +341,13 @@ with st.sidebar.expander("📊 Noise Model Details"):
 run_btn = st.sidebar.button("🚀 Run Mitigation", type="primary")
 
 # --- Main Content ---
-st.title("⚛️ QEM-Former Dashboard")
+st.title("⚛️ CDRFormer Dashboard")
 st.markdown("### Data-Driven Quantum Error Mitigation with Graph Transformers")
 
 # Description
 st.markdown("""
 <div class="info-box">
-<strong>Architecture:</strong> QEM-Former combines Clifford Data Regression (CDR) for ground truth generation, 
+<strong>Architecture:</strong> CDRFormer combines Clifford Data Regression (CDR) for ground truth generation, 
 Pauli Twirling for noise stochastification, and a Graph Transformer that captures circuit topology as a DAG.
 <br><br>
 <strong>Key Results:</strong> 31.9% error reduction on Variational circuits | 80% win rate vs noisy baselines
@@ -397,7 +397,7 @@ with main_tab1:
         with col2:
             st.metric(label="ZNE Baseline", value=f"{zne_base:.4f}", delta=f"-{err_base:.4f} Err", delta_color="inverse")
         with col3:
-            st.metric(label="QEM-Former", value=f"{final_pred:.4f}", delta=f"-{err_model:.4f} Err", delta_color="inverse")
+            st.metric(label="CDRFormer", value=f"{final_pred:.4f}", delta=f"-{err_model:.4f} Err", delta_color="inverse")
         with col4:
             st.markdown(f"""
             <div class="metric-card">
@@ -418,7 +418,7 @@ with main_tab1:
             with c1:
                 # Bar Chart: True vs ZNE vs AI
                 fig, ax = plt.subplots(figsize=(10, 5))
-                labels = ['True', 'ZNE (Physics)', 'QEM-Former (AI)']
+                labels = ['True', 'ZNE (Physics)', 'CDRFormer (AI)']
                 values = [true_val, zne_base, final_pred]
                 colors = ['#2ECC71', '#E74C3C', '#3498DB']
                 
@@ -447,7 +447,7 @@ with main_tab1:
                 st.markdown("#### 🤖 AI Contribution")
                 st.info(f"Residual correction: **{ai_res:.5f}**")
                 st.markdown("""
-                The QEM-Former captures non-linear error patterns that ZNE's polynomial extrapolation misses, 
+                The CDRFormer captures non-linear error patterns that ZNE's polynomial extrapolation misses, 
                 including gate-dependent noise and circuit topology effects.
                 """)
 
@@ -455,7 +455,7 @@ with main_tab1:
             st.markdown("#### Error Distribution by Qubit")
             fig_qubit = plot_error_by_qubit(qubits, noise_scale)
             st.pyplot(fig_qubit)
-            st.caption("Comparison of per-qubit error rates before and after QEM-Former mitigation.")
+            st.caption("Comparison of per-qubit error rates before and after CDRFormer mitigation.")
         
         with vis_tab3:
             st.markdown("#### Qubit Connectivity Heatmap")
@@ -467,7 +467,7 @@ with main_tab1:
             st.markdown("#### 🔗 Circuit as Directed Acyclic Graph (DAG)")
             st.markdown("""
             This visualization shows how the quantum circuit is transformed into a graph structure 
-            that QEM-Former processes. **Nodes** represent gates, **edges** represent qubit wire dependencies.
+            that CDRFormer processes. **Nodes** represent gates, **edges** represent qubit wire dependencies.
             """)
             
             fig_dag, n_nodes, n_edges = plot_circuit_dag(qc)
@@ -597,10 +597,10 @@ with main_tab2:
         width = 0.35
         
         bars1 = ax1.bar(x - width/2, noisy_errors, width, label='Noisy', color='#E74C3C', alpha=0.8)
-        bars2 = ax1.bar(x + width/2, qem_errors, width, label='QEM-Former', color='#3498DB', alpha=0.8)
+        bars2 = ax1.bar(x + width/2, qem_errors, width, label='CDRFormer', color='#3498DB', alpha=0.8)
         
         ax1.set_ylabel('Mean Absolute Error')
-        ax1.set_title('Error Comparison: Noisy vs QEM-Former')
+        ax1.set_title('Error Comparison: Noisy vs CDRFormer')
         ax1.set_xticks(x)
         ax1.set_xticklabels(circuit_types)
         ax1.legend()
@@ -624,7 +624,7 @@ with main_tab2:
         bars = ax2.bar(circuit_types, win_rates, color=colors, alpha=0.8)
         ax2.axhline(y=50, color='yellow', linestyle='--', alpha=0.7, label='Random Chance')
         ax2.set_ylabel('Win Rate (%)')
-        ax2.set_title('QEM-Former Win Rate by Circuit Type')
+        ax2.set_title('CDRFormer Win Rate by Circuit Type')
         ax2.set_ylim(0, 100)
         ax2.set_facecolor('#0E1117')
         ax2.tick_params(colors='white')
@@ -649,7 +649,7 @@ with main_tab2:
         st.warning("Benchmark results not found. Run `python benchmark_suite.py` to generate.")
 
 with main_tab3:
-    st.markdown("### 🏗️ QEM-Former Architecture")
+    st.markdown("### 🏗️ CDRFormer Architecture")
     
     col1, col2 = st.columns([2, 1])
     
@@ -742,7 +742,7 @@ with main_tab4:
     STEPS = {
         1: {"title": "The Problem", "icon": "❓"},
         2: {"title": "Data Generation (CDR + Pauli Twirling)", "icon": "📊"},
-        3: {"title": "QEM-Former Architecture", "icon": "🏗️"},
+        3: {"title": "CDRFormer Architecture", "icon": "🏗️"},
         4: {"title": "Run Live Benchmark", "icon": "🚀"},
         5: {"title": "Results Analysis", "icon": "📈"},
         6: {"title": "QAOA Failure Analysis", "icon": "⚠️"},
@@ -823,7 +823,7 @@ with main_tab4:
     
     elif st.session_state.pres_step == 3:
         # Step 3: Architecture
-        st.markdown("### QEM-Former Architecture")
+        st.markdown("### CDRFormer Architecture")
         
         st.markdown("""
         ```
@@ -895,7 +895,7 @@ with main_tab4:
                         "Circuit": circuit_name,
                         "True Value": f"{true_val:.4f}",
                         "ZNE": f"{zne:.4f}",
-                        "QEM-Former": f"{pred:.4f}",
+                        "CDRFormer": f"{pred:.4f}",
                         "Result": win
                     })
             
@@ -958,7 +958,7 @@ with main_tab4:
             true_val, _ = pipeline.get_ground_truth(qc)
             
             st.write(f"True Value: {true_val:.4f}")
-            st.write(f"QEM-Former Prediction: {pred:.4f}")
+            st.write(f"CDRFormer Prediction: {pred:.4f}")
             st.write(f"Note: QAOA values are typically close to 0")
     
     elif st.session_state.pres_step == 7:
@@ -966,7 +966,7 @@ with main_tab4:
         st.markdown("### Architecture Evolution")
         
         arch_data = {
-            'Architecture': ['SVR', 'LSTM', 'GCN', 'QEM-Former'],
+            'Architecture': ['SVR', 'LSTM', 'GCN', 'CDRFormer'],
             'MSE': [0.03, 0.03, 0.02, 0.009]
         }
         
@@ -989,7 +989,7 @@ with main_tab4:
                     f'{height:.3f}', ha='center', va='bottom', color='white')
         
         st.pyplot(fig)
-        st.success("**QEM-Former: 3.3x better than baseline!**")
+        st.success("**CDRFormer: 3.3x better than baseline!**")
     
     elif st.session_state.pres_step == 8:
         # Step 8: Interactive Demo
@@ -1018,12 +1018,12 @@ with main_tab4:
                 with col2:
                     st.metric("ZNE Baseline", f"{zne:.4f}")
                 with col3:
-                    st.metric("QEM-Former", f"{pred:.4f}")
+                    st.metric("CDRFormer", f"{pred:.4f}")
                 
                 err_noisy = abs(true_val - zne)
                 err_qem = abs(true_val - pred)
                 if err_qem < err_noisy:
-                    st.success(f"✅ QEM-Former wins! Error reduced by {((err_noisy - err_qem)/err_noisy)*100:.1f}%")
+                    st.success(f"✅ CDRFormer wins! Error reduced by {((err_noisy - err_qem)/err_noisy)*100:.1f}%")
                 else:
                     st.warning("⚠️ ZNE performed better on this circuit")
     

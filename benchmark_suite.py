@@ -9,7 +9,7 @@ import mitiq
 from mitiq import zne
 import utils
 from data_gen_advanced import QEMGraphBuilder, DATASET_DIR
-from models.qem_former import QEMFormer
+from models.cdr_former import CDRFormer
 import os
 import json
 from datetime import datetime
@@ -51,9 +51,9 @@ def calculate_ideal_z0_statevector(qc):
         print(f"  Statevector failed: {e}")
         return None
 
-def benchmark_models(model_path="weights/qem_former.pth", save_results=True):
+def benchmark_models(model_path="weights/cdr_former.pth", save_results=True):
     """
-    Benchmarks the trained QEM-Former against Noisy Baseline and Mitiq ZNE.
+    Benchmarks the trained CDRFormer against Noisy Baseline and Mitiq ZNE.
     Uses STATEVECTOR for accurate ground truth on all circuit types.
     """
     print("=" * 70)
@@ -68,11 +68,11 @@ def benchmark_models(model_path="weights/qem_former.pth", save_results=True):
     print(f"Device: {device}")
     
     global_dim = 5
-    model = QEMFormer(noise_context_dim=global_dim).to(device)
+    model = CDRFormer(noise_context_dim=global_dim).to(device)
     
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path, map_location=device))
-        print(f"Loaded QEM-Former weights from: {model_path}")
+        print(f"Loaded CDRFormer weights from: {model_path}")
         model.eval()
     else:
         print(f"WARNING: Model weights not found at {model_path}. Using random weights.")
@@ -149,7 +149,7 @@ def benchmark_models(model_path="weights/qem_former.pth", save_results=True):
             except Exception as e:
                 val_zne = val_noisy  # Fallback
             
-            # D. QEM-Former
+            # D. CDRFormer
             zz_noisy = 0.0
             global_attr = [val_noisy, zz_noisy, 5.0, 20.0, 1.5]
             
@@ -250,7 +250,7 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="QEM Benchmark Suite (Fixed)")
-    parser.add_argument("--model", type=str, default="weights/qem_former.pth", help="Model weights path")
+    parser.add_argument("--model", type=str, default="weights/cdr_former.pth", help="Model weights path")
     parser.add_argument("--no-save", action="store_true", help="Don't save results to JSON")
     
     args = parser.parse_args()

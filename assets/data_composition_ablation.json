@@ -1,0 +1,27 @@
+{
+  "low_qaoa": {
+    "clifford_frac": 0.8,
+    "qaoa_frac": 0.08,
+    "variational_frac": 0.12,
+    "qaoa_win_rate": 0.9333333333333333
+  },
+  "medium_qaoa": {
+    "clifford_frac": 0.6,
+    "qaoa_frac": 0.2,
+    "variational_frac": 0.2,
+    "qaoa_win_rate": 1.0
+  },
+  "high_qaoa": {
+    "clifford_frac": 0.4,
+    "qaoa_frac": 0.35,
+    "variational_frac": 0.25,
+    "qaoa_win_rate": 1.0
+  },
+  "very_high_qaoa": {
+    "clifford_frac": 0.3,
+    "qaoa_frac": 0.5,
+    "variational_frac": 0.2,
+    "qaoa_win_rate": 1.0
+  },
+  "timestamp": "2026-02-05T20:41:38.232771"
+}

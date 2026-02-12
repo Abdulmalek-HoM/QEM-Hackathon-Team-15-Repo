@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch_geometric.loader import DataLoader
-from models.qem_former import QEMFormer
+from models.cdr_former import CDRFormer
 import os
 import glob
 import matplotlib.pyplot as plt
@@ -13,7 +13,7 @@ from datetime import datetime
 
 # Configuration
 DATASET_DIR = "dataset"
-MODEL_SAVE_PATH = "weights/qem_former.pth"
+MODEL_SAVE_PATH = "weights/cdr_former.pth"
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 EPOCHS = 100
@@ -34,7 +34,7 @@ def load_data():
 
 def train():
     print("=" * 60)
-    print("QEM-Former Training Pipeline")
+    print("CDRFormer Training Pipeline")
     print("=" * 60)
     
     # Check device
@@ -66,7 +66,7 @@ def train():
     global_dim = sample.global_attr.numel()
     print(f"Detected global feature dimension: {global_dim}")
     
-    model = QEMFormer(noise_context_dim=global_dim).to(device)
+    model = CDRFormer(noise_context_dim=global_dim).to(device)
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     criterion = nn.MSELoss()
     
@@ -168,7 +168,7 @@ def plot_training_curves(metrics):
     ax1.axvline(x=metrics['best_epoch'], color='g', linestyle='--', alpha=0.7, label=f'Best (Epoch {metrics["best_epoch"]})')
     ax1.set_xlabel('Epoch', fontsize=12)
     ax1.set_ylabel('MSE Loss', fontsize=12)
-    ax1.set_title('QEM-Former Training Curves', fontsize=14)
+    ax1.set_title('CDRFormer Training Curves', fontsize=14)
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     ax1.set_yscale('log')

@@ -1,6 +1,7 @@
 """
 Generate Post-Hackathon Improvement Figures
 Compares original 7K dataset results with new 25K dataset results
+CDRFormer Performance Analysis
 """
 
 import matplotlib.pyplot as plt

@@ -6,7 +6,7 @@ import os
 # Add root directory to path to allow importing from utils and models
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from models.qem_former import QEMFormer
+from models.cdr_former import CDRFormer
 from data_gen_advanced import QEMGraphBuilder
 import utils
 from qiskit_aer import AerSimulator
@@ -15,19 +15,19 @@ from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
 class HackathonPipeline:
-    def __init__(self, model_path="weights/qem_former.pth"):
+    def __init__(self, model_path="weights/cdr_former.pth"):
         self.device = torch.device('cpu') # Force CPU for safety in dashboard usually
         self.graph_builder = QEMGraphBuilder()
         
-        # Load AI Model (QEM-Former)
+        # Load AI Model (CDRFormer)
         try:
-            self.model = QEMFormer().to(self.device)
+            self.model = CDRFormer().to(self.device)
             # Load weights (weights_only=False for safety if trusted, or True if properly saved)
             # We saved with defaults in train_qem, which might require weights_only=False if global issues persist
             state_dict = torch.load(model_path, map_location=self.device, weights_only=False)
             self.model.load_state_dict(state_dict)
             self.model.eval()
-            print("✅ AI Model (QEM-Former) Loaded Successfully.")
+            print("✅ AI Model (CDRFormer) Loaded Successfully.")
         except FileNotFoundError:
             print(f"⚠️ Model file {model_path} not found. AI correction will be disabled.")
             self.model = None
@@ -73,7 +73,7 @@ class HackathonPipeline:
         base_estimate = self.run_zne(qc)
         
         # 2. AI Prediction (Mitigated Value directly OR Residual?)
-        # Our QEMFormer was trained to predict the *Ideal Value* directly from (NoisyGraph).
+        # Our CDRFormer was trained to predict the *Ideal Value* directly from (NoisyGraph).
         # Wait, let's check train_qem.py / data_gen.
         # graph_data.y = ideal.
         # Input global_attr = [noisy_val, n_q, depth]. 

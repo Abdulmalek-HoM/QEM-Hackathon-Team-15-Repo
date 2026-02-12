@@ -1,0 +1,128 @@
+{
+  "clifford": {
+    "name": "Random Clifford (In-Distribution)",
+    "n_seeds": 5,
+    "methods": {
+      "noisy": {
+        "mean_error": 0.12599999999999986,
+        "std_across_seeds": 0.017322009121346127,
+        "ci_95": 0.015183410441662925
+      },
+      "zne_linear": {
+        "mean_error": 0.12550222222222188,
+        "std_across_seeds": 0.015422341337996538,
+        "ci_95": 0.013518278212754404,
+        "win_rate": 0.5533333333333333,
+        "win_rate_std": 0.054160256030906385
+      },
+      "zne_richardson": {
+        "mean_error": 0.1478933333333336,
+        "std_across_seeds": 0.01534030855839174,
+        "ci_95": 0.013446373311095206,
+        "win_rate": 0.38000000000000006,
+        "win_rate_std": 0.06863753427324668
+      },
+      "cdr_baseline": {
+        "mean_error": 0.03426304556330688,
+        "std_across_seeds": 0.003031679166378806,
+        "ci_95": 0.0026573839551812185,
+        "win_rate": 0.7866666666666667,
+        "win_rate_std": 0.08589399151150087
+      },
+      "cdr_former": {
+        "mean_error": 0.04233407020568834,
+        "std_across_seeds": 0.003888220338694922,
+        "ci_95": 0.0034081753956170875,
+        "win_rate": 0.74,
+        "win_rate_std": 0.06798692684790383
+      }
+    }
+  },
+  "qaoa": {
+    "name": "QAOA MaxCut",
+    "n_seeds": 5,
+    "methods": {
+      "noisy": {
+        "mean_error": 0.02533,
+        "std_across_seeds": 0.0031490633528082498,
+        "ci_95": 0.0027602757311543983
+      },
+      "zne_linear": {
+        "mean_error": 0.028213333333333333,
+        "std_across_seeds": 0.003092453179381481,
+        "ci_95": 0.0027106547263222778,
+        "win_rate": 0.51,
+        "win_rate_std": 0.04898979485566354
+      },
+      "zne_richardson": {
+        "mean_error": 0.08590000000000013,
+        "std_across_seeds": 0.006564754374689144,
+        "ci_95": 0.005754260918658468,
+        "win_rate": 0.21000000000000002,
+        "win_rate_std": 0.048989794855663564
+      },
+      "cdr_baseline": {
+        "mean_error": 0.034989897541246415,
+        "std_across_seeds": 0.007729559566076626,
+        "ci_95": 0.0067752576853453966,
+        "win_rate": 0.38,
+        "win_rate_std": 0.10295630140987001
+      },
+      "cdr_former": {
+        "mean_error": 0.0009999100118875536,
+        "std_across_seeds": 9.72921964243873e-05,
+        "ci_95": 8.528037023499525e-05,
+        "win_rate": 0.9800000000000001,
+        "win_rate_std": 0.024494897427831803
+      }
+    }
+  },
+  "variational": {
+    "name": "Variational Ansatz (HEA)",
+    "n_seeds": 5,
+    "methods": {
+      "noisy": {
+        "mean_error": 0.08018331615602468,
+        "std_across_seeds": 0.009174971051700398,
+        "ci_95": 0.008042216713572371
+      },
+      "zne_linear": {
+        "mean_error": 0.08557737074114573,
+        "std_across_seeds": 0.01278884054270095,
+        "ci_95": 0.011209912988298773,
+        "win_rate": 0.39,
+        "win_rate_std": 0.12409673645990857
+      },
+      "zne_richardson": {
+        "mean_error": 0.11333239850486214,
+        "std_across_seeds": 0.025836007719251233,
+        "ci_95": 0.022646259254762383,
+        "win_rate": 0.31,
+        "win_rate_std": 0.09695359714832658
+      },
+      "cdr_baseline": {
+        "mean_error": 0.029342419183844365,
+        "std_across_seeds": 0.0037726920569088112,
+        "ci_95": 0.00330691039178927,
+        "win_rate": 0.7799999999999999,
+        "win_rate_std": 0.08124038404635962
+      },
+      "cdr_former": {
+        "mean_error": 0.03242514710698631,
+        "std_across_seeds": 0.005298967749090382,
+        "ci_95": 0.004644750022237696,
+        "win_rate": 0.7699999999999999,
+        "win_rate_std": 0.07483314773547886
+      }
+    }
+  },
+  "timestamp": "2026-02-05T13:52:49.016644",
+  "n_seeds": 5,
+  "seeds_used": [
+    42,
+    123,
+    456,
+    789,
+    2024
+  ]
+}

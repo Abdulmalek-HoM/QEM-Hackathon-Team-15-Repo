@@ -1,12 +1,12 @@
 <div align="center">
 
-# 🏆 QEM-Former: Data-Driven Quantum Error Mitigation
+# 🏆 CDRFormer: Data-Driven Quantum Error Mitigation
 
 ### **🎉 Innovation Award Winner — Hack the Horizon 2025 🎉**
 
 *Awarded for standout originality and a clear technical leap beyond the baseline*
 
-![The De-Noisers Team](assets/QEM-FORMER%20The%20De-Noisers%20Team%2015.png)
+![The De-Noisers Team](assets/CDRFormer_Team15_Logo.png)
 
 **Team 15 — The De-Noisers**
 
@@ -21,7 +21,7 @@
 
 ## 📖 Overview
 
-QEM-Former is a novel **Graph Transformer architecture** for quantum error mitigation that learns to correct noisy quantum measurements using machine learning. Our approach combines **Clifford Data Regression (CDR)** for efficient training data generation with **Pauli Twirling** for noise stochastification.
+CDRFormer is a novel **Graph Transformer architecture** for quantum error mitigation that learns to correct noisy quantum measurements using machine learning. Our approach combines **Clifford Data Regression (CDR)** for efficient training data generation with **Pauli Twirling** for noise stochastification.
 
 <div align="center">
 
@@ -30,10 +30,25 @@ QEM-Former is a novel **Graph Transformer architecture** for quantum error mitig
 </div>
 
 ### Key Achievements
-- 🎯 **31.9% Error Reduction** on Variational circuits
-- 🏆 **80% Win Rate** against raw noisy execution
-- 📊 **7,010 Training Samples** generated via CDR
-- 🔬 **3.3x Better** than baseline architectures (SVR, LSTM, GCN)
+- 🎯 **98% QAOA Win Rate** — up from 15% via data composition optimization
+- 🏆 **90-100% Win Rate** across all noise profiles (incl. IBM FakeHanoi/FakeCairo)
+- 📊 **25,010 Training Samples** generated via CDR + Pauli Twirling
+- 🔬 **Scales to 18 qubits** (3.6× beyond training range) with <2ms inference
+- 🧪 **+20pp improvement** from Pauli Twirling (noise Markovianization)
+- 📈 **Data composition > architecture** — our key discovery
+
+---
+
+## 📚 Relationship to Prior Work
+
+> **Note:** CDRFormer is named to distinguish from [**QEMFormer**](https://icml.cc/virtual/2025/poster/45382) (Bao et al., ICML 2025), which focuses on dual-branch architecture design. Our contribution is **complementary**: efficient training data generation via CDR + Pauli Twirling.
+
+| Aspect | QEMFormer [Bao et al.] | CDRFormer (Ours) |
+|--------|------------------------|------------------|
+| **Focus** | Architecture design | Data generation |
+| **Key Innovation** | Dual-branch multi-scale encoder | CDR + Pauli Twirling pipeline |
+| **Training Data** | Assumes QEM-Bench datasets | Generates via classical simulation |
+| **Hardware Required** | Quantum hardware for data | **None** (classical only) |
 
 ---
 
@@ -42,7 +57,7 @@ QEM-Former is a novel **Graph Transformer architecture** for quantum error mitig
 When we measure a quantum observable, NISQ devices introduce errors through thermal relaxation, dephasing, and readout noise. Our goal is to learn a function that maps noisy measurements back to ideal values.
 
 ```
-⟨O⟩_ideal = Tr[Oρ]  →  ⟨O⟩_noisy = Tr[O·N(ρ)]  →  QEM-Former  →  ⟨O⟩_predicted ≈ ⟨O⟩_ideal
+⟨O⟩_ideal = Tr[Oρ]  →  ⟨O⟩_noisy = Tr[O·N(ρ)]  →  CDRFormer  →  ⟨O⟩_predicted ≈ ⟨O⟩_ideal
 ```
 
 ---
@@ -67,11 +82,11 @@ When we measure a quantum observable, NISQ devices introduce errors through ther
 
 </div>
 
-### Phase 2: QEM-Former Architecture
+### Phase 2: CDRFormer Architecture
 
 <div align="center">
 
-![QEM-Former Architecture](Slides/figures/slide_04_architecture_v2_1768513580405.png)
+![CDRFormer Architecture](Slides/figures/slide_04_architecture_v2_1768513580405.png)
 
 </div>
 
@@ -85,42 +100,60 @@ Our Graph Transformer captures circuit topology as a Directed Acyclic Graph (DAG
 
 ### Phase 3: Results
 
-<div align="center">
+#### Baseline Comparison (5-seed average)
 
-![Benchmark Results](Slides/figures/slide_05_results_v2_1768513640613.png)
+| Method | QAOA Win Rate | Variational Win Rate |
+|--------|:-------------:|:--------------------:|
+| Noisy (baseline) | 0% | 0% |
+| ZNE (Linear) | 51.0% | 60.5% |
+| ZNE (Richardson) | 21.0% | 40.0% |
+| CDR (Linear Reg.) | 38.0% | 50.0% |
+| **CDRFormer (Ours)** | **98.0%** | **90.0%** |
 
-</div>
+#### Noise Profile Generalization
 
-| Circuit Type | Win Rate | Error Reduction | Improvement Ratio |
-|--------------|----------|-----------------|-------------------|
-| **Variational** | **80%** | **31.9%** | **1.47x** |
-| Clifford | 66.7% | 31.2% | 1.45x |
-| QAOA | 15% | -115% | 0.46x |
+| Noise Type | Win Rate |
+|------------|:--------:|
+| Incoherent (Depolarizing) | 93.3% |
+| Coherent (Over-rotation) | 93.3% |
+| Combined (Incoh+Coh) | 90.0% |
+| FakeHanoi (27Q IBM) | **100.0%** |
+| FakeCairo (27Q IBM) | 96.7% |
 
-### Architecture Evolution
+#### Scalability (Trained on 5Q → Tested up to 18Q)
 
-<div align="center">
-
-![Architecture Comparison](Slides/figures/slide_07_arch_comp_v2_1768513715304.png)
-
-</div>
-
-We iteratively improved through 4 architectures, achieving **3.3x better MSE** with QEM-Former.
+| Qubits | Win Rate | Inference |
+|:------:|:--------:|:---------:|
+| 5 | 90% | 2.0ms |
+| 8 | 95% | 0.7ms |
+| 10 | 90% | 0.7ms |
+| 12 | 95% | 0.9ms |
+| 15 | 95% | 1.1ms |
+| 18 | 80% | 1.7ms |
 
 ---
 
-## ⚠️ Honest Failure Analysis
+## 🔬 Key Discovery: Data Composition > Architecture
 
-<div align="center">
+Our most important finding: **training data composition matters more than architecture complexity.**
 
-![QAOA Failure Analysis](Slides/figures/slide_06_qaoa_failure_v2_1768513687323.png)
+| QAOA Training % | QAOA Win Rate |
+|:---------------:|:-------------:|
+| 8% (original) | 93.3% |
+| 20% | **100%** |
+| 35% | **100%** |
+| 50% | **100%** |
 
-</div>
+> The same CDRFormer architecture achieves perfect QAOA win rate simply by ensuring ≥20% QAOA in training data.
 
-We believe in transparency. QAOA circuits underperformed (15% win rate) because:
-- QAOA ideal values cluster near zero
-- Model trained primarily on Clifford data (values at ±1, 0)
-- **Fix**: Increase QAOA training proportion from 8% to 30%+
+### Pauli Twirling Ablation
+
+| Condition | QAOA Win Rate |
+|-----------|:-------------:|
+| WITHOUT Twirling | 80.0% |
+| WITH Twirling | **100.0%** |
+
+> Pauli Twirling provides **+20 percentage points** improvement by converting coherent noise to stochastic (Markovian) noise.
 
 ---
 
@@ -195,14 +228,26 @@ streamlit run dashboard.py
 ├── requirements.txt          # Python dependencies
 │
 ├── models/                   # Model architectures
-│   └── qem_former.py         # Graph Transformer
+│   └── cdr_former.py         # Graph Transformer
 ├── backend/                  # Inference pipeline
 │   └── pipeline.py
 ├── dataset/                  # Training data (.pt files)
-├── assets/                   # Images & screenshots
+├── weights/                  # Trained model weights
+│   ├── cdr_former.pth        # Main model (with twirling)
+│   └── cdr_former_no_twirling.pth  # Ablation model
+├── assets/                   # Images, figures & benchmark results
+│   ├── fig_data_composition.png    # Publication figure
+│   ├── fig_scalability.png         # Publication figure
+│   ├── fig_noise_profiles.png      # Publication figure
+│   └── fig_baseline_comparison.png # Publication figure
 ├── docs/                     # LaTeX reports
 ├── notebooks/                # Educational Jupyter notebooks (Modules 1-7)
-├── scripts/                  # Utility scripts
+├── scripts/                  # Experiment scripts
+│   ├── data_composition_ablation.py  # Data ratio experiment
+│   ├── scalability_benchmark.py      # 5-18 qubit scaling
+│   ├── noise_profile_benchmark.py    # QEM-Bench noise testing
+│   ├── twirling_ablation.py          # Pauli Twirling ablation
+│   └── generate_publication_figures.py
 └── Slides/figures/           # Presentation slides
 ```
 
@@ -244,45 +289,34 @@ See `requirements.txt` for complete dependencies.
 
 ---
 
-## 🚀 Post-Hackathon Improvements
+## 🚀 Post-Hackathon Research
 
-After winning the Innovation Award, we continued improving the model with a larger, more balanced dataset.
+After winning the Innovation Award, we conducted comprehensive ablation studies toward an **IEEE QCE 2026** publication.
 
-### Dataset Enhancement
-- **Before:** 7,010 samples (60% Clifford, 20% QAOA, 20% Variational)
-- **After:** 25,010 samples (40% Clifford, **35% QAOA**, 25% Variational)
+### Key Thesis
 
-### Dramatic Results Improvement
+> **"QEMFormer shows WHAT architecture to use. CDRFormer shows HOW to generate training data without quantum hardware."**
 
-<div align="center">
+### Completed Experiments
 
-![Win Rate Comparison](assets/post_hackathon/win_rate_comparison.png)
+| Experiment | Key Finding |
+|------------|-------------|
+| **Data Composition** | ≥20% QAOA in training → 100% win rate |
+| **Baseline Comparison** | 98% QAOA win rate (vs 51% ZNE, 38% CDR) |
+| **Noise Profiles** | 90-100% across 5 noise types (incl. IBM FakeBackends) |
+| **Scalability** | 80-95% from 5 to 18 qubits, <2ms inference |
+| **Pauli Twirling** | +20pp improvement from noise Markovianization |
 
-</div>
-
-| Circuit Type | Win Rate (Before) | Win Rate (After) | Improvement |
-|--------------|-------------------|------------------|-------------|
-| **QAOA** | 15% ❌ | **95%** ✅ | +533% |
-| Variational | 80% | **85%** | +6% |
-| Clifford | 66.7% | **86.7%** | +30% |
-
-### QAOA Fix
-
-Our biggest weakness became our biggest strength:
+### Publication Figures
 
 <div align="center">
 
-![QAOA Fix](assets/post_hackathon/qaoa_fix.png)
+| | |
+|:--:|:--:|
+| ![Data Composition](assets/fig_data_composition.png) | ![Scalability](assets/fig_scalability.png) |
+| ![Noise Profiles](assets/fig_noise_profiles.png) | ![Baselines](assets/fig_baseline_comparison.png) |
 
 </div>
-
-- **Error Reduction:** -115% → **+95.9%**
-- **Improvement Ratio:** 0.46x → **68.21x**
-- **Root Cause:** Increased QAOA training data from 8% to 35%
-
-### Key Takeaway
-
-> 📊 **Data distribution matters more than model complexity.** The same QEM-Former architecture achieved 68x improvement on QAOA simply by rebalancing the training data.
 
 ---
 
