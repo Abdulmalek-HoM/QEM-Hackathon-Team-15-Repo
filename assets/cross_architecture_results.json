@@ -1,0 +1,65 @@
+[
+  {
+    "model": "MLP (No Graph)",
+    "best_val_loss": 0.000540577655978268,
+    "win_rates": {
+      "qaoa": 60.36036036036037,
+      "variational": 97.92027729636048,
+      "clifford": 96.91171534071836,
+      "overall": 93.0
+    },
+    "mae_model": {
+      "qaoa": 0.03124192953822916,
+      "variational": 0.03924654646287551,
+      "clifford": 0.004004541222319807
+    },
+    "mae_noisy": {
+      "qaoa": 0.04105923162392542,
+      "variational": 0.1199917528307004,
+      "clifford": 0.09194852176694714
+    },
+    "num_params": 11137
+  },
+  {
+    "model": "GCN (Message Passing)",
+    "best_val_loss": 0.00035214523592730986,
+    "win_rates": {
+      "qaoa": 68.24324324324324,
+      "variational": 95.66724436741768,
+      "clifford": 96.3074857334676,
+      "overall": 93.10000000000001
+    },
+    "mae_model": {
+      "qaoa": 0.027902363130386482,
+      "variational": 0.029110858355692396,
+      "clifford": 0.002744981716969247
+    },
+    "mae_noisy": {
+      "qaoa": 0.04105923162392542,
+      "variational": 0.1199917528307004,
+      "clifford": 0.09194852176694714
+    },
+    "num_params": 20225
+  },
+  {
+    "model": "CDRFormer (Graph Transformer)",
+    "best_val_loss": 0.00037767318723490464,
+    "win_rates": {
+      "qaoa": 65.54054054054053,
+      "variational": 94.97400346620451,
+      "clifford": 97.21383014434373,
+      "overall": 93.375
+    },
+    "mae_model": {
+      "qaoa": 0.029317037078661023,
+      "variational": 0.029754676583321503,
+      "clifford": 0.0028959979533862475
+    },
+    "mae_noisy": {
+      "qaoa": 0.04105923162392542,
+      "variational": 0.1199917528307004,
+      "clifford": 0.09194852176694714
+    },
+    "num_params": 112129
+  }
+]
