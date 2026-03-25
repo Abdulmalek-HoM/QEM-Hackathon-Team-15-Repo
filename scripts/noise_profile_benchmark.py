@@ -157,7 +157,7 @@ def benchmark_noise_profile(noise_model, noise_name, model, n_circuits=30, seed=
         
         # Noisy execution
         try:
-            t_qc = transpile(qc, sim_noisy)
+            t_qc = transpile(qc, basis_gates=sim_noisy.operation_names)
             counts = sim_noisy.run(t_qc, shots=SHOTS).result().get_counts()
             z0 = 0
             total = 0

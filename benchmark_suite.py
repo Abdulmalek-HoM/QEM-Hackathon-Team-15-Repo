@@ -87,7 +87,7 @@ def benchmark_models(model_path="weights/cdr_former.pth", save_results=True):
     
     def executor(circuit):
         """Executor for Mitiq ZNE"""
-        t_qc = transpile(circuit, sim_noisy)
+        t_qc = transpile(circuit, basis_gates=sim_noisy.operation_names)
         res = sim_noisy.run(t_qc, shots=2000).result().get_counts()
         return calculate_expectation_z0(res)
 

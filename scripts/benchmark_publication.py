@@ -102,7 +102,7 @@ def train_cdr_baseline(n_training_circuits: int = 50,
             continue
         
         # Get noisy value
-        t_qc = transpile(qc, sim_noisy)
+        t_qc = transpile(qc, basis_gates=sim_noisy.operation_names)
         res = sim_noisy.run(t_qc, shots=DEFAULT_SHOTS).result().get_counts()
         val_noisy = calculate_expectation_z0(res)
         
@@ -163,7 +163,7 @@ def benchmark_single_seed(seed: int,
     
     # Executor for Mitiq
     def executor(circuit):
-        t_qc = transpile(circuit, sim_noisy)
+        t_qc = transpile(circuit, basis_gates=sim_noisy.operation_names)
         res = sim_noisy.run(t_qc, shots=DEFAULT_SHOTS).result().get_counts()
         return calculate_expectation_z0(res)
     

@@ -11,8 +11,11 @@ from data_gen_advanced import QEMGraphBuilder
 import utils
 from qiskit_aer import AerSimulator
 from qiskit import transpile
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, OptimizeWarning
 from sklearn.linear_model import LinearRegression
+import warnings
+
+warnings.simplefilter('ignore', OptimizeWarning)
 
 class HackathonPipeline:
     def __init__(self, model_path="weights/cdr_former.pth"):
@@ -43,7 +46,7 @@ class HackathonPipeline:
         for s in scales:
             nm = utils.build_noise_model(scale=s)
             sim = AerSimulator(noise_model=nm)
-            qc_t = transpile(qc, sim)
+            qc_t = transpile(qc, basis_gates=sim.operation_names)
             counts = sim.run(qc_t, shots=1000).result().get_counts()
             shots = sum(counts.values())
             # Calculate expectation value Z
@@ -68,7 +71,7 @@ class HackathonPipeline:
             
         return base_est
 
-    def predict(self, qc, instructions):
+    def predict(self, qc, instructions, noise_scale=1.0):
         # 1. ZNE Baseline
         base_estimate = self.run_zne(qc)
         
@@ -99,7 +102,7 @@ class HackathonPipeline:
             nm = utils.build_noise_model(scale=1.0)  # Baseline noise
             sim = AerSimulator(noise_model=nm)
             
-            t_qc = transpile(qc, sim)
+            t_qc = transpile(qc, basis_gates=sim.operation_names)
             counts = sim.run(t_qc, shots=1000).result().get_counts()
             shots = sum(counts.values())
             
@@ -125,7 +128,7 @@ class HackathonPipeline:
             
             # Build Graph with 5-dim global context: [z0_noisy, zz_noisy, n_qubits, depth, noise_scale]
             depth = qc.depth()
-            noise_scale = 1.0  # We use baseline noise for inference
+            # noise_scale is passed from arguments
             global_attr = [z0_noisy, zz_noisy, float(n_q), float(depth), noise_scale]
             
             graph = self.graph_builder.circuit_to_graph(qc, global_features=global_attr).to(self.device)
@@ -142,12 +145,8 @@ class HackathonPipeline:
 
     def get_ground_truth(self, qc):
         """Simulates ideal circuit."""
-        sim_ideal = AerSimulator(method='stabilizer')
-        try:
-            res = sim_ideal.run(transpile(qc, sim_ideal), shots=1000).result().get_counts()
-        except:
-            sim_ideal = AerSimulator(method='statevector')
-            res = sim_ideal.run(transpile(qc, sim_ideal), shots=1000).result().get_counts()
+        sim_ideal = AerSimulator() # automatically selects 'stabilizer' or 'statevector'
+        res = sim_ideal.run(transpile(qc, basis_gates=sim_ideal.operation_names), shots=1000).result().get_counts()
             
         shots = sum(res.values())
         # Calculate <Z_0>

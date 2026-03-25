@@ -105,7 +105,7 @@ def quick_benchmark(model, n_circuits=20, seed=42):
     builder = QEMGraphBuilder()
     
     def executor(circuit):
-        t_qc = transpile(circuit, sim_noisy)
+        t_qc = transpile(circuit, basis_gates=sim_noisy.operation_names)
         res = sim_noisy.run(t_qc, shots=2000).result().get_counts()
         z0 = 0
         total = 0

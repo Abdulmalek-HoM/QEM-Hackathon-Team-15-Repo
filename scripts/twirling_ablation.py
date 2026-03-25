@@ -83,7 +83,7 @@ def generate_dataset_no_twirling(n_samples=N_SAMPLES, noise_scale=1.5, seed=42):
             continue
         
         # Noisy execution WITHOUT twirling
-        t_qc = transpile(qc, sim_noisy)
+        t_qc = transpile(qc, basis_gates=sim_noisy.operation_names)
         counts = sim_noisy.run(t_qc, shots=2000).result().get_counts()
         val_noisy = calculate_z0_expectation(counts)
         
@@ -158,7 +158,7 @@ def benchmark_model(model, n_circuits=30, seed=42):
         val_ideal = sum((1 if (idx >> 0) & 1 == 0 else -1) * p for idx, p in enumerate(probs))
         
         # Noisy
-        t_qc = transpile(qc, sim_noisy)
+        t_qc = transpile(qc, basis_gates=sim_noisy.operation_names)
         counts = sim_noisy.run(t_qc, shots=2000).result().get_counts()
         val_noisy = calculate_z0_expectation(counts)
         

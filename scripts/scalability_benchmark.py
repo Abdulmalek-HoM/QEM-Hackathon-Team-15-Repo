@@ -72,7 +72,7 @@ def benchmark_scale(model, n_qubits, n_circuits=20, seed=42):
         
         # Noisy execution
         try:
-            t_qc = transpile(qc, sim_noisy)
+            t_qc = transpile(qc, basis_gates=sim_noisy.operation_names)
             counts = sim_noisy.run(t_qc, shots=SHOTS).result().get_counts()
             z0 = 0
             total = 0

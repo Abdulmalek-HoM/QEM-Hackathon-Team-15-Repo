@@ -321,7 +321,7 @@ def generate_advanced_dataset(n_samples=1000, min_qubits=5, max_qubits=20, chunk
         
         # 3. Noisy Execution with Pauli Twirling
         qc_twirled = apply_pauli_twirling(qc)
-        qc_noisy_transpiled = transpile(qc_twirled, sim_noisy)
+        qc_noisy_transpiled = transpile(qc_twirled, basis_gates=sim_noisy.operation_names)
         
         counts_noisy = sim_noisy.run(qc_noisy_transpiled, shots=2000).result().get_counts()
         
@@ -482,7 +482,7 @@ def generate_mixed_dataset(n_samples=2000, min_qubits=4, max_qubits=8, noise_sca
         
         # NOISY execution
         qc_twirled = apply_pauli_twirling(qc)
-        qc_noisy = transpile(qc_twirled, sim_noisy)
+        qc_noisy = transpile(qc_twirled, basis_gates=sim_noisy.operation_names)
         counts_noisy = sim_noisy.run(qc_noisy, shots=2000).result().get_counts()
         
         z0_noisy = calculate_z0_expectation(counts_noisy)
